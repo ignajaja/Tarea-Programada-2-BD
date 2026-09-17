@@ -1,3 +1,4 @@
+# archivo generado de manera predeterminada de GitHub al crear el repositorio, hace un ignore de todo lo no necesario relacionado con python
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -25,6 +26,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+Scripts/
 
 # PyInstaller
 #   Usually these files are written by a python script from a template
