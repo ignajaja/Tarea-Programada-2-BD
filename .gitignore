@@ -1,0 +1,16 @@
+# Entorno Virtual Local
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
+
+# Archivos de caché y optimización de Python
+__pycache__/
+*.py[cod]
+
+# Base de datos local
+db.sqlite3
+
+# Configuraciones de editores de código comunes
+.vscode/
+.idea/
