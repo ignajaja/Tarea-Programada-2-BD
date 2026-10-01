@@ -1,0 +1,78 @@
+<!-- catalagos-->
+<Tipo_Doc>
+ <TipoDocuIdentidad Id="1" Nombre="Cedula Nacional"/>
+ <TipoDocuIdentidad Id="2" Nombre="Cedula Residente"/>
+ <TipoDocuIdentidad Id="3" Nombre="Pasaporte"/>
+ <TipoDocuIdentidad Id="4" Nombre="Cedula Juridica"/>
+ <TipoDocuIdentidad Id="5" Nombre="Permiso de Trabajo"/>
+ <TipoDocuIdentidad Id="6" Nombre="Cedula Extranjera"/>
+</Tipo_Doc>
+
+
+<Tipo_Moneda>
+ <TipoMoneda Id="1" Nombre="Colones" Simbolo="₡"/>
+ <TipoMoneda Id="2" Nombre="Dolares" Simbolo="$"/>
+ <TipoMoneda Id="3" Nombre="Euros" Simbolo="€"/>
+</Tipo_Moneda>
+
+
+<Parentezcos>
+ <Parentezco Id="1" Nombre="Padre"/>
+ <Parentezco Id="2" Nombre="Madre"/>
+ <Parentezco Id="3" Nombre="Hijo"/>
+ <Parentezco Id="4" Nombre="Hija"/>
+ <Parentezco Id="5" Nombre="Hermano"/>
+ <Parentezco Id="6" Nombre="Hermana"/>
+ <Parentezco Id="7" Nombre="amigo"/>
+ <Parentezco Id="8" Nombre="amiga"/>
+</Parentezcos>
+
+
+<Tipo_Cuenta_Ahorros>
+ <TipoCuentaAhorro
+ Id="1"
+ Nombre="Proletario"
+ IdTipoMoneda="1"
+ SaldoMinimo="25000.00"
+ MultaSaldoMin="3000.00"
+ CargoAnual = "5000"
+ NumRetirosHumano="5"
+ NumRetirosAutomatico ="8"
+ comisionHumano="300"
+ omisionAutomatico="300"
+ interes ="10" />
+ <TipoCuentaAhorro
+ Id="2"
+ Nombre="Profesional"
+ IdTipoMoneda="1"
+ SaldoMinimo="50000.00"
+ MultaSaldoMin="3000.00"
+ CargoAnual = "15000"
+ NumRetirosHumano="5"
+ NumRetirosAutomatico ="8"
+ comisionHumano="500"
+ comisionAutomatico="500"
+ interes ="15" />
+ <TipoCuentaAhorro
+ Id="3"
+ Nombre="Exclusivo"
+ IdTipoMoneda="1"
+ SaldoMinimo="100000.00"
+ MultaSaldoMin="3000.00"
+ CargoAnual = "30000"
+ NumRetirosHumano="5"
+ NumRetirosAutomatico ="8"
+ comisionHumano="1000"
+ comisionAutomatico="1000"
+ interes ="20" />
+</Tipo_Cuenta_Ahorros>
+
+<TipoOperaciones>
+<TipoOperacion id="1" nombre="Login"/>
+<TipoOperacion id="2" nombre="Logout"/>
+<TipoOperacion id="3" nombre="Agregar beneficiario"/>
+<TipoOperacion id="4" nombre="Actualizar beneficiario"/>
+<TipoOperacion id="5" nombre="Eliminar beneficiario"/>
+<TipoOperacion id="6" nombre="Actualizar porcentaje de beneficiario"/>
+<TipoOperacion id="7" nombre="Consultar estado de cuenta"/>
+</TipoOperaciones> 
