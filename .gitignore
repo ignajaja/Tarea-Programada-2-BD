@@ -14,3 +14,6 @@ db.sqlite3
 # Configuraciones de editores de código comunes
 .vscode/
 .idea/
+
+#Variables de conexion a la BD
+.env
