@@ -1,0 +1,67 @@
+<!-- {% load django_bootstrap5 %}
+{% block content %}
+
+<div class="container py-5">
+    <div class="container mt-4" style="max-width: 800;">
+        <h1>Editar beneficiarios</h1>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <p>Datos persona</p>
+            {% bootstrap_form form_persona %}
+
+            <p>Datos beneficiario</p>
+            {% bootstrap_form form_beneficiario %}
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-success">Guardar</button>
+                <a href="{% url 'lista_beneficiarios' %}" class="btn btn-secondary">Cancelar</a>
+
+            </div>
+        </form>
+    </div>
+
+</div> 
+
+{% bootstrap_javascript %}
+
+{% endblock %}
+
+<!-- 
+Nombre (string de 64 caracteres),  
+referencia a un catálogo de nombres de parentesco (string de 32 caracteres), 
+porcentaje de beneficio (entero, no puede ser más de 100),  
+fecha de nacimiento (date), 
+Tipo de documento de identificación, 
+valor del documento de identificación (string numérico de 32), 
+email
+2 teléfonos.   -->
+
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Editar beneficiario</title>
+        {% bootstrap_css %}
+        {% bootstrap_javascript %}
+    </head>
+
+    <body class="bg-light">
+        <div class="container mt-4" style="max-width: 800px;">
+            <h1>Editar beneficiario</h1>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <h4 class="mt-4">Datos personales</h4>
+                {% bootstrap_form form_persona %}
+
+                <h4 class="mt-4">Datos del beneficiario</h4>
+                {% bootstrap_form form_beneficiario %}
+
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                    <a href="{% url 'lista_beneficiarios' %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </body>
+</html>

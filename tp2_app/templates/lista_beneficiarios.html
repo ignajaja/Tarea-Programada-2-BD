@@ -1,0 +1,46 @@
+{% load django_bootstrap5 %}
+<html>
+    <head>
+        <title>Beneficiarios</title>
+        {% bootstrap_css %}
+        {% bootstrap_javascript %}
+    </head>
+</html>
+
+<body class="bg_light">
+    <div class="container mt-4">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">{{ message }}</div>
+        {% endfor %}
+
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Nombre</th><th>Parentesco</th><th>Porcentaje</th><th>Documento</th><th></th>
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in beneficiarios %}
+                <tr>
+                    <td> {{ b.persona.nombre }} </td>
+                    <td> {{ b.parentesco.nombre }} </td>
+                    <td> {{ b.porcentaje }} </td>
+                    <td> {{ b.persona.tipo_documento.nombre }}: {{b.persona.valor_documento}} </td>
+                    <td><a class="btn btn-sm btn-primary" href="{% url 'editar_beneficiarios' b.pk %}">Editar</a></td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay beneficiarios</td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+</body>
+
+

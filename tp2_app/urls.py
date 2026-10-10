@@ -10,4 +10,8 @@ urlpatterns = [
 
 
 
+    path('beneficiarios/', views.lista_beneficiarios, name='lista_beneficiarios'),
+    path('beneficiarios/<int:pk>/editar/', views.editar_beneficiarios, name='editar_beneficiarios'),
+
+    
 ]

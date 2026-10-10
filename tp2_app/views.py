@@ -1,6 +1,8 @@
-from django.shortcuts import render, redirect
-from django.db import connection
+from django.db import connection, transaction
 from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
+from .forms import BeneficiarioForm, PersonaForm
+from .models import Beneficiario
 
 def login_view(request):
     if request.method == "POST":
@@ -28,9 +30,31 @@ def login_view(request):
                 return redirect('login')
         return render(request, 'login.html')
 
-def editar_beneficiarios(request):
-    #logica editar beneficiarios
-    return render(request, 'editar_beneficiarios.html')
+
+def editar_beneficiarios(request, pk):
+    beneficiario = get_object_or_404(Beneficiario.objects.select_related('persona'), pk=pk, activo=True)
+    persona = beneficiario.persona
+
+    if request.method == 'POST':
+        form_persona = PersonaForm(request.POST, instance=persona)
+        form_beneficiario = BeneficiarioForm(request.POST, instance=beneficiario)
+        if form_persona.is_valid() and form_beneficiario.is_valid():
+            # ACID, se salva todo o nada
+            with transaction.atomic():
+                form_persona.save()
+                form_beneficiario.save()
+
+            messages.success(request, 'Se actualizó correctamente')
+            return redirect('lista_beneficiarios')
+
+    else:
+        form_beneficiario = BeneficiarioForm(instance=beneficiario)
+        form_persona = PersonaForm(instance=persona)
+
+    return render(request, 'editar_beneficiarios.html', {'beneficiario': beneficiario, 'form_persona': form_persona, 'form_beneficiario': form_beneficiario})
 
 
 
+def lista_beneficiarios(request):
+    beneficiarios = Beneficiario.objects.filter(activo=True).select_related('persona__tipo_documento', 'parentesco')
+    return render(request, 'lista_beneficiarios.html', {'beneficiarios': beneficiarios})
