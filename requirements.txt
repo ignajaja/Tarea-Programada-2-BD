@@ -1,24 +1,204 @@
-asgiref==3.12.1
-azure-core==1.41.0
-azure-identity==1.25.3
-certifi==2026.7.22
-cffi==2.1.1
-charset-normalizer==3.5.2
-cryptography==50.0.2
-Django==6.1.1
-django-bootstrap5==26.3
-idna==3.20
-msal==1.39.0
-msal-extensions==1.3.1
-mssql-django==2.0.0
-mssql-python==1.15.0
-mssql-python-odbc==18.6.2.1
-pycparser==3.0
-PyJWT==2.15.1
-pyodbc==5.3.0
-python-decouple==3.8
-requests==2.34.2
-sqlparse==0.6.0
-typing_extensions==4.16.0
-tzdata==2026.4
-urllib3==2.8.0
+____  ___  ___
+|  |__  /      Análisis de Algoritmos
+|  |___ \___  Tarea de Heap Sort
+=== Indicaciones Generales.
+
+> El tiempo estimado para la realización de la tarea es de 3 horas.
+
+> Su tares es individual.
+
+> Se podrá hacer únicamente 1 entrega (upload) de su tarea.
+
+> Debe entregar su tarea en un archivo de texto de extensión .mac que sea reconocido para cargar en wxmaxima usando el comando "load package".
+
+> Debe realizar su tarea en el lenguaje de wxmaxima, sin utilizar ninguna biblioteca adicional.
+  Es decir no puede usar el comando load(...) para subir una biblioteca adicional al lenguaje base.
+  No se permite el uso de la instrucción sort(...) de wxmaxima.
+
+> Todo el código que se presente debe ser completamente original y escrito por quienes realizaron la tarea.
+  No se permite copiar/cargar/descargar código de otros sitios.
+
+> La respuesta a una pregunta teórico/práctica que no requiera programación debe ser original y propia.
+  Escrita por quienes realizaron la tarea. No se permite copiar/cargar/descargar respuestas de otros sitios.
+
+> Al inicio de la tarea, debe poner en comentarios la siguiente información:
+  Carné y nombre quien realizó la tarea.
+  Documentación adicional que considere importante.
+  Respuesta a alguna pregunta planteada en la tarea
+
+> Se debe utilizar el algoritmo indicado en clase, no se puede utilizar otro.
+
+> Debe utilizar exactamente los nombres de las funciones y los parámetros que se les ha solicitado.
+
+> El programa debe compilar correctamente.
+
+> En caso que tenga que hacer un análisis del BigOh del programa,
+  deberá realizarlo utilizando la misma técnica que se usó en las clases.
+  Se debe presentar primero en programa que se ejecuta.
+  El programa debe tener una indentación correcta de acuerdo a los principios de programación.
+  Después copia el programa entre comentarios y se hace el análisis.
+  Se debe poner el tiempo de ejecución t(n) en cada línea del programa, con la indentación adecuada.
+  El código que se ejecuta no debe llevar ningún análisis de BigOh.
+  Y el código con el análisis de Big Oh, no debe llevar ningún comentario.
+
+> Debe suponer que todas las operaciones de "print" tienen un valor "1" o de O(1).
+
+> Si no se siguen todas las indicaciones dada en la tarea, de no hacerlo tendrá una nota de 0.
+
+=== Descripción de la Tarea.
+
+El objetivo de la tarea es hacer un programa que implemente el "heap sort" utilizando el siguiente algoritmo.
+
+1. Se recibe una lista en la función principal.
+  La función principal debe llamarse "heapSort(lista)".
+
+2. La lista debe convertirse en un vector de heap.
+  Para ello se implenta la función insertHeap(ele,lista).
+
+3. Una vez que se tiene el heap, se hacen extracciones sucesivas.
+  Se utiliza la función deleteHeap(lista).
+
+=== Descripción de los Funciones.
+
+Puede programar todas las funciones auxiliares que necesite.
+Pero debe construir las siguientes funciones.
+
+>> insertHeap(...).
+
+Esta función debe trabajar de la siguiente forma:
+
+Vamos a ir construyendo un heap con esta lista:
+
+lista:[15,20,10,8,50,16,30];
+
+(%i) insertHeap(15,[]);
+(%o) [15]
+
+(%i) insertHeap(20,[15]);
+(%o) [20,15]
+
+(%i) insertHeap(10,[20,15]);
+(%o) [20,15,10]
+
+(%i) insertHeap(8,[20,15,10]);
+(%o) [20,15,10,8]
+
+(%i) insertHeap(50,[20,15,10,8]);
+(%o) [50,20,10,8,15]
+
+(%i) insertHeap(16,[50,20,10,8,15]);
+(%o) [50,20,16,8,15,10]
+
+(%i) insertHeap(30,[50,20,16,8,15,10]);
+(%o) [50,20,30,8,15,10,16]
+
+>> deleteHeap(...)
+
+Supongamos que tenemos este heap.
+Vamos a extraer elementos para construir una lista ordenada.
+
+listaHpp: [50,30,20,15,10,8,16];
+
+(%i) deleteHeap([50,30,20,15,10,8,16]);
+(%o) [50,[30,16,20,15,10,8]]
+
+(%i) deleteHeap([30,16,20,15,10,8]);
+(%o) [30,[20,16,8,15,10]]
+
+(%i) deleteHeap([20,16,8,15,10]);
+(%o) [20,[16,15,8,10]]
+
+(%i) deleteHeap([16,15,8,10]);
+(%o) [16,[15,10,8]]
+
+(%i) deleteHeap([15,10,8]);
+(%o) [15,[10,8]]
+
+(%i) deleteHeap([10,8]);
+(%o) [10,[8]]
+
+(%i) deleteHeap([8]);
+(%o) [8,[]]
+
+>> heapSort(...).
+
+Se debe de realizar exactamente la impresión que se solicita.
+
+Si tenemos esta lista inicial:
+
+(%i) heapSort([15,20,10,8,50,16,30]);
+[]
+[15]
+[20,15]
+[20,15,10]
+[20,15,10,8]
+[50,20,10,8,15]
+[50,20,16,8,15,10]
+[50,20,30,8,15,10,16]
+-----
+[50,20,30,8,15,10,16]
+[30,20,16,8,15,10]
+[20,15,16,8,10]
+[16,15,10,8]
+[15,8,10]
+[10,8]
+[8]
+[]
+(%o) [8,10,15,16,20,30,50]
+
+La función debe poder procesar elementos repetidos.
+
+Al hacer el insertHeap(...) los elementos menores o iguales deben ir a la izquierda.
+
+(%i) heapSort([40,30,40,20,20,10,60]);
+[]
+[40]
+[40,30]
+[40,30,40]
+[40,30,40,20]
+[40,30,40,20,20]
+[40,30,40,20,20,10]
+[60,30,40,20,20,10,40]
+-----
+[60,30,40,20,20,10,40]
+[40,30,40,20,20,10]
+[40,30,10,20,20]
+[30,20,10,20]
+[20,20,10]
+[20,10]
+[10]
+[]
+-----
+(%o) [10,20,20,30,40,40,60]
+
+=== Rúbrica de Calificación.
+
+Criterios:
+
+> Programa insertHeap................30pts
+  Programa funciona correctamente    30pts
+  Programa no funciona correctamente  0pts
+  Programa no funciona                0pts
+
+> Programa deleteHeap............... 30pts*
+  Programa funciona correctamente    30pts
+  Programa no funciona correctamente  0pts
+  Programa no funciona                0pts
+
+> Programa heapSort................. 30pts*
+  Programa funciona correctamente    30pts
+  Programa no funciona correctamente  0pts
+  Programa no funciona                0pts
+
+> Desarrollo adecuado del programa...10pts*
+  --Impresión solicitada
+  --Buenas técnicas de programación
+  --Otros elementos
+  No se tiene el desarrollo          0pts
+  Desarrollo no es correcto          0pts
+  Desarrollo es correcto            10pts
+
+> Total............................ 100pts
+
+* Unicamente se obtienen los puntos
+  si la respuesta anterior es correcta.
