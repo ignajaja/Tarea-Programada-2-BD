@@ -1,41 +1,46 @@
-CREATE PROCEDURE dbo.sp_IniciarSesion
-    @in_Username VARCHAR(50),
-    @in_Pass VARCHAR(100),
+CREATE OR ALTER PROCEDURE dbo.sp_IniciarSesion
+    @in_Username VARCHAR(64),
+    @in_Pass VARCHAR(128),
     @out_EsAdministrador BIT OUTPUT,
-    @out_CodigoRespuesta INT OUTPUT
+    @out_CodigoRespuesta INT OUTPUT --0 para exito y 1 para error en credenciales
 AS
 BEGIN
 	SET NOCOUNT ON;
 	
 	BEGIN TRY
+		BEGIN TRANSACTION; 
 		
-		BEGIN TRANSACTION; --Se inicia la transacción de iniciar sesión para garantizar atomicidad
-		
-		IF EXISTS (SELECT 1 FROM Usuarios WHERE Username = @in_Username AND Pass = @in_Pass)
-		BEGIN --Si existe el usuario que se ingresó
-			SELECT @out_EsAdministrador = EsAdministrador 
+		IF EXISTS (SELECT 1 FROM Usuarios WHERE Username = @in_Username AND Pass = @in_Pass) --Revisar que el usuario exista
+		BEGIN 
+			SELECT @out_EsAdministrador = EsAdministrador  --Consulta valor de si es admnistrador o no
             FROM Usuarios 
             WHERE Username = @in_Username AND Pass = @in_Pass;
-			SET @out_CodigoRespuesta = 0; --Código 0 para éxito al iniciar sesión
+			
+			SET @out_CodigoRespuesta = 0; --Si existe, corigo de exito al iniciar sesion
+
+            -- Se registra en bitacora el login, tipo operacion 1 corresponde a inicio de sesion
+            EXEC dbo.sp_RegistrarBitacora 
+                @in_Username = @in_Username, 
+                @in_IdTipoOperacion = 1, 
+                @in_JsonAntes = NULL, 
+                @in_JsonDespues = NULL;
 		END
 		ELSE
-		BEGIN --Si no existen se setean valores por defecto para las variables, código 1 para error
-			SET @out_EsAdministrador = 0;
-            SET @out_CodigoRespuesta = 1;
+		BEGIN 
+			SET @out_EsAdministrador = 0; 
+            SET @out_CodigoRespuesta = 1; --Credenciales invalidas
 		END
 		
-		COMMIT TRANSACTION; --Finaliza la transacción
+		COMMIT TRANSACTION; 
 		
 	END TRY
-		
 	BEGIN CATCH
-		IF @@TRANCOUNT > 0 --Si no se concretó la transacción se hace ROLLBACK
+		IF @@TRANCOUNT > 0 
 		BEGIN
 			ROLLBACK TRANSACTION;
 		END
 		
-		SET @out_CodigoRespuesta = ERROR_NUMBER(); --Se retorna el código de error que arroje el servidor
-		SET @out_EsAdministrador = 0; --Valor por defecto para la variable esAdmin
-		
+		SET @out_CodigoRespuesta = ERROR_NUMBER(); 
+		SET @out_EsAdministrador = 0; 
 	END CATCH
 END;

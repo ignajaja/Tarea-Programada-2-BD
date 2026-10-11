@@ -1,6 +1,12 @@
-{% extends 'navbar.html' %}
-
-{% block title %}Iniciar Sesión{% endblock %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>{% block title %}Iniciar Sesión{% endblock %}</title>
+    {% load django_bootstrap5 %} 
+    {% bootstrap_css %} 
+    {% bootstrap_javascript %} 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+</head>
 
 {% block content %}
 <div class="row justify-content-center mt-5">
