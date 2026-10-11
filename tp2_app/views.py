@@ -97,6 +97,11 @@ def editar_beneficiarios(request, pk):
         'form_persona' : form_persona,
         'form_beneficiario' : form_beneficiario
     })
-            
+
+
+def redireccion_inicio(request):
+    if 'username' in request.session:
+        return redirect('lista_beneficiarios')
+    return redirect('login')
 
 
