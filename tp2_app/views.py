@@ -35,6 +35,19 @@ def cerrar_sesion(request):
         request.session.flush()
     return redirect('login')
 
+def lista_beneficiarios(request):
+    if 'username' not in request.session:
+        return redirect('login')
+
+    usuario_actual = request.session['username']
+
+    with connection.cursor() as cursor:
+        cursor.execute("EXEC dbo.sp_ObtenerBeneficiarios @in_Username = %s", [usuario_actual])
+        columnas = [col[0].lower() for col in cursor.description]
+        beneficiarios = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+    return render(request, 'lista_beneficiarios.html', {'beneficiarios':beneficiarios})
+
 
 def editar_beneficiarios(request, pk):
     beneficiario = get_object_or_404(Beneficiario.objects.select_related('persona'), pk=pk, activo=True)
