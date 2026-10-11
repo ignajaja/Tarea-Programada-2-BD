@@ -1,46 +1,70 @@
-{% load django_bootstrap5 %}
-<html>
-    <head>
-        <title>Beneficiarios</title>
-        {% bootstrap_css %}
-        {% bootstrap_javascript %}
-    </head>
-</html>
+{% extends 'navbar.html' %}
 
-<body class="bg_light">
-    <div class="container mt-4">
-        {% for message in messages %}
-        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">{{ message }}</div>
-        {% endfor %}
+{% block title %}Lista de Beneficiarios{% endblock %}
 
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Nombre</th><th>Parentesco</th><th>Porcentaje</th><th>Documento</th><th></th>
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-12">
+        
+        <div class="card shadow p-4 bg-white rounded mb-4">
+            <h3 class="text-center mb-4 fw-bold text-primary fs-3 text-uppercase">
+                <i class="bi bi-people-fill me-2"></i>Beneficiarios Asociados
+            </h3>
 
-                </tr>
-            </thead>
-            <tbody>
-                {% for b in beneficiarios %}
-                <tr>
-                    <td> {{ b.persona.nombre }} </td>
-                    <td> {{ b.parentesco.nombre }} </td>
-                    <td> {{ b.porcentaje }} </td>
-                    <td> {{ b.persona.tipo_documento.nombre }}: {{b.persona.valor_documento}} </td>
-                    <td><a class="btn btn-sm btn-primary" href="{% url 'editar_beneficiarios' b.pk %}">Editar</a></td>
-                </tr>
-
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">No hay beneficiarios</td>
-                </tr>
-
+            <!-- Espacio por si hay mensajes para mostrar -->
+            
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                </div>
                 {% endfor %}
-            </tbody>
+            {% endif %}
+            
+            <!-- Tabla para listar los beneficiarios -->
 
-        </table>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Parentesco</th>
+                            <th>Porcentaje</th>
+                            <th>Documento</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
 
+                        <!-- Recorre la lista de los beneficiarios que recibio del views y los va mostrando -->
+                        
+                        {% for b in beneficiarios %}
+                        <tr>
+                            <td>{{ b.nombre }}</td>
+                            <td>{{ b.parentesco }}</td>
+                            <td>{{ b.porcentaje }}%</td>
+                            <td>{{ b.tipodocumento }}: {{ b.valordocumento }}</td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-primary fw-semibold" href="{% url 'editar_beneficiarios' b.beneficiarioid %}">
+                                    <i class="bi bi-pencil-square me-1"></i>Editar
+                                </a>
+                            </td>
+                        </tr>
+                         
+                        <!-- Si la lista es vacia, muestra un mensaje de que no hay beneficiarios en la cuenta-->
+
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No se encontraron beneficiarios asociados a esta cuenta.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
     </div>
-</body>
-
-
+</div>
+{% endblock %}
