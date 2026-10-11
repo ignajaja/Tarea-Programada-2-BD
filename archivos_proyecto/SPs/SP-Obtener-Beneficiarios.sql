@@ -8,6 +8,7 @@ BEGIN
 	--Devuelve los beneficiarios activos asociados.
     SELECT 
         Beneficiario.Id AS BeneficiarioId,
+		Beneficiario.NumeroCuenta,
         Persona.Nombre,
         Parentesco.Nombre AS Parentesco,
         Beneficiario.Porcentaje,
