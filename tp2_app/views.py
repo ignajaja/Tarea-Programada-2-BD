@@ -50,7 +50,27 @@ def lista_beneficiarios(request):
         columnas = [col[0].lower() for col in cursor.description]
         beneficiarios = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
-    return render(request, 'lista_beneficiarios.html', {'beneficiarios':beneficiarios})
+        #Una vez obtenidos los beneficiarios se van a usar para ejecutar el sp de calcular porcentajes
+        #para saber si hay alguna cuenta que no cumple con el 100%
+        alerta_porcentaje = None
+        for b in beneficiarios:
+            beneficiario_id = b.get('beneficiarioid') 
+        
+            if beneficiario_id:
+                with connection.cursor() as cursor_suma:
+                    #Lamada al sp pasandole el id del beneficiario.
+                    cursor_suma.execute("EXEC dbo.sp_CalcularPorcentajes @in_BeneficiarioId = %s", [beneficiario_id])
+                    lista_suma = cursor_suma.fetchone()
+                
+                    suma_total = lista_suma[1] if lista_suma and lista_suma[1] is not None else 100
+
+                    # Si alguna cuenta no suma 100% se crea la alerta
+                    if suma_total != 100:
+                        mensaje_alerta = "La suma de los porcentajes de sus beneficiarios en una o más de sus cuentas no suma 100, favor corregir y cancelar la edición"
+                        messages.warning(request, mensaje_alerta)
+                        break # con solo una que falle muestra la alerta
+
+    return render(request, 'lista_beneficiarios.html', {'beneficiarios': beneficiarios})
 
 
 def editar_beneficiarios(request, pk):
@@ -95,18 +115,7 @@ def editar_beneficiarios(request, pk):
                 mensaje_respuesta = row[1] if row and row[1] is not None else "Error al editar beneficiario"
 
             if codigo_respuesta == 0:
-
-                with connection.cursor() as cursor_suma:
-                    cursor_suma.execute("EXEC dbo.sp_CalcularPorcentajes @in_BeneficiarioId = %s", [pk])
-                    lista_suma = cursor_suma.fetchone()
-
-                suma_total = lista_suma[1] if lista_suma and lista_suma[1] is not None else 100
-
-                if suma_total != 100:
-                    mensaje_alerta="La suma de los porcentajes de sus beneficiarios en una o más de sus cuentas no suma 100, favor corregir y cancelar la edición"
-                    messages.warning(request, mensaje_alerta)
-                else:
-                    messages.success(request, mensaje_respuesta)
+                messages.success(request, mensaje_respuesta)
                 return redirect('lista_beneficiarios')
             elif codigo_respuesta == 1:
                 messages.error(request, mensaje_respuesta)

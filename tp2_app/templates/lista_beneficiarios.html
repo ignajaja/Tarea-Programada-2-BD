@@ -14,7 +14,8 @@
             
             {% if messages %}
                 {% for message in messages %}
-                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} alert-dismissible fade show" role="alert">
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning text-dark fw-bold border-warning shadow-sm{% else %}alert-danger{% endif %} alert-dismissible fade show" role="alert">
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
                     {{ message }}
                 </div>
                 {% endfor %}
