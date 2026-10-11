@@ -14,7 +14,7 @@
         <div class="container-fluid">
             <!-- Título -->
             <a class="navbar-brand fw-bold" href="/">
-                <i class="bi bi-bank me-2"></i>
+                <i class="bi bi-bank me-2">Banco Impopular</i>
             </a>
             
             <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -23,7 +23,8 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Solo se muestra si la sesion esta activa-->
+                <!-- Se verifica que la sesion este activa para mostrar las opciones 
+                 de Beneficiarios, estados de cuenta y cerrar sesion -->
                 {% if request.session.username %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
@@ -39,7 +40,7 @@
                         <span class="fw-semibold fs-5">{{ request.session.username }}</span>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-danger fw-semibold text-white" href="#">Cerrar Sesión</a>
+                        <a class="btn btn-danger fw-semibold text-white" href="{% url 'logout' %}">Cerrar Sesión</a>
                     </li>
                 </ul>
                 {% endif %}
