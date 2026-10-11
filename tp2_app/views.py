@@ -12,7 +12,7 @@ def iniciar_sesion(request):
         with connection.cursor() as cursor:
 
             cursor.execute(
-                'EXEC dbo.sp_IniciarSesion @in_Username = ?, @in_Pass = ?',
+                'EXEC dbo.sp_IniciarSesion @in_Username = %s, @in_Pass = %s',
                 [usuario, contrasena]
             )
             fila = cursor.fetchdone()
@@ -75,7 +75,7 @@ def editar_beneficiarios(request, pk):
         
                 
                 cursor.execute(
-                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = ?, @in_BeneficiarioId = ?, @in_NombrePersona = ?, @in_IdParentezco, @in_Porcentaje = ?",
+                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentezco, @in_Porcentaje = %s",
                     [usuario_actual, pk, nuevo_nombre, nuevo_parentesco, nuevo_porcentaje]
                 )
                 fila = cursor.fetchdone()
