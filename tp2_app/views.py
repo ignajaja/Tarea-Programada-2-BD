@@ -132,6 +132,21 @@ def editar_beneficiarios(request, pk):
         'form_beneficiario' : form_beneficiario
     })
 
+def lista_estados_cuenta(request):
+    if 'username' not in request.session:
+        return redirect('login')
+
+    usuario_actual = request.session['username']
+
+    with connection.cursor() as cursor:
+        # llamada al sp que devuelte los ultimos 8 estados de cuenta
+        cursor.execute("EXEC dbo.sp_ConsultarEstadosDeCuenta @in_Username = %s", [usuario_actual])
+        
+        columnas = [col[0].lower() for col in cursor.description]
+        estados_cuenta = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+    return render(request, 'lista_estados_cuenta.html', {'estados_cuenta': estados_cuenta})
+
 
 def redireccion_inicio(request):
     if 'username' in request.session:

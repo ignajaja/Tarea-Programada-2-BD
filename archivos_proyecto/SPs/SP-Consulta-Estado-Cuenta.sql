@@ -4,19 +4,24 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Extraer los ultimos 8 estados de cuenta del usuario dado
+    -- Extraer los ultimos 8 estados de cuenta del usuario dado con todas sus métricas y el saldo mínimo
     SELECT TOP 8 
-        Estado_de_Cuenta.NumeroCuenta,
-        Estado_de_Cuenta.fechaInicio AS FechaInicio,
-        Estado_de_Cuenta.fechafin AS FechaFin,
-        Estado_de_Cuenta.saldoinicial AS SaldoInicial,
-        Estado_de_Cuenta.saldoMinimo AS SaldoMinimo,
-        Estado_de_Cuenta.saldo_final AS SaldoFinal
-    FROM Estado_de_Cuenta
-    INNER JOIN Cuentas ON Estado_de_Cuenta.NumeroCuenta = Cuentas.NumeroCuenta
-    INNER JOIN Usuarios_Ver ON Cuentas.NumeroCuenta = Usuarios_Ver.NumeroCuenta
+        Estado_Cuenta.NumeroCuenta,
+        Estado_Cuenta.fechaInicio AS FechaInicio,
+        Estado_Cuenta.fechafin AS FechaFin,
+        Estado_Cuenta.saldoinicial AS SaldoInicial,
+        Estado_Cuenta.saldoMinimo AS SaldoMinimo,
+        Estado_Cuenta.saldo_final AS SaldoFinal,
+        Estado_Cuenta.interesesAcumulados AS InteresesAcumulados,
+        Estado_Cuenta.cantRetiros AS CantRetiros,
+        Estado_Cuenta.cantDepositos AS CantDepositos,
+        Estado_Cuenta.cantSinpeEntrantes AS CantSinpeEntrantes,
+        Estado_Cuenta.cantSinpeSalientes AS CantSinpeSalientes
+    FROM Estado_Cuenta
+    INNER JOIN Cuenta ON Estado_Cuenta.NumeroCuenta = Cuenta.NumeroCuenta
+    INNER JOIN Usuarios_Ver ON Cuenta.NumeroCuenta = Usuarios_Ver.NumeroCuenta
     WHERE Usuarios_Ver.Username = @in_Username
-    ORDER BY Estado_de_Cuenta.fechafin DESC;
+    ORDER BY Estado_Cuenta.fechafin DESC;
 
     -- Registrar en bitácora con tipo de operacion 7
     EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 7;
