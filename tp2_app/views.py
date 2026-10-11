@@ -10,11 +10,17 @@ def iniciar_sesion(request):
         contrasena = request.POST.get('password')
         
         with connection.cursor() as cursor:
-            cursor.execute('EXEC dbo.sp_IniciarSesion @in_Username=%s, @in_Pass=%s', [usuario, contrasena])
-            fila = cursor.fetchone()
+
+            es_admin_out = cursor.var(int)
+            codigo_out = cursor.var(int)
+
+            cursor.execute(
+                'EXEC dbo.sp_IniciarSesion @in_Username = ?, @in_Pass = ?, @out_EsAdministrador = ?, @out_CodigoRespuesta = ?',
+                [usuario, contrasena, es_admin_out, codigo_out]
+            )
             
-            es_admin = fila[0] if fila else 0
-            codigo = fila[1] if fila else 1
+            es_admin = es_admin_out.value if es_admin_out.value is not None else 0
+            codigo = codigo_out.value if codigo_out.value is not None else 1
             
             if codigo == 0:
                 request.session['username'] = usuario
