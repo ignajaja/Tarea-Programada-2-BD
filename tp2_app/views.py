@@ -75,18 +75,42 @@ def editar_beneficiarios(request, pk):
         
                 
                 cursor.execute(
-                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentezco, @in_Porcentaje = %s",
+                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentezco = %s, @in_Porcentaje = %s",
                     [usuario_actual, pk, nuevo_nombre, nuevo_parentesco, nuevo_porcentaje]
                 )
-                fila = cursor.fetchone()
-                codigo_respuesta = fila[0] if fila and fila[0] is not None else 2
-                mensaje_respuesta = fila[1] if fila and fila[1] is not None else "Error al editar beneficiario"
+
+                row = None
+                while True:
+                    if cursor.description is not None:
+                        row = cursor.fetchone()
+                        if row is not None:
+                            break
+                    try:
+                        if not cursor.nextset():
+                            break
+                    except Exception:
+                        break
+
+                codigo_respuesta = row[0] if row and row[0] is not None else 2
+                mensaje_respuesta = row[1] if row and row[1] is not None else "Error al editar beneficiario"
 
             if codigo_respuesta == 0:
-                messages.success(request, mensaje_respuesta)
+
+                with connection.cursor() as cursor_suma:
+                    cursor_suma.execute("EXEC dbo.sp_CalcularPorcentajes @in_BeneficiarioId = %s", [pk])
+                    lista_suma = cursor_suma.fetchone()
+
+                suma_total = lista_suma[1] if lista_suma and lista_suma[1] is not None else 100
+
+                if suma_total != 100:
+                    mensaje_alerta="La suma de los porcentajes de sus beneficiarios en una o más de sus cuentas no suma 100, favor corregir y cancelar la edición"
+                    messages.warning(request, mensaje_alerta)
+                else:
+                    messages.success(request, mensaje_respuesta)
                 return redirect('lista_beneficiarios')
             elif codigo_respuesta == 1:
                 messages.error(request, mensaje_respuesta)
+                return redirect('lista_beneficiarios')
             else:
                 messages.error(request, "Error: " + str(mensaje_respuesta))
     else:

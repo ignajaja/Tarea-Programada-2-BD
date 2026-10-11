@@ -11,11 +11,15 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION; 
 		
-		IF EXISTS (SELECT 1 FROM Usuario WHERE Username = @in_Username AND Pass = @in_Pass) --Revisar que el usuario exista
+		IF EXISTS (SELECT 1 FROM Usuario 
+					WHERE CAST(Username AS VARBINARY(64)) = CAST(@in_Username AS VARBINARY(64))  --Se convierte a varbiunary para case sensitive
+					AND CAST(Pass AS VARBINARY(128)) = CAST(@in_Pass AS VARBINARY(128)) --Revisar que el usuario exista
+				  )
 		BEGIN 
 			SELECT @out_EsAdministrador = EsAdministrador  --Consulta valor de si es admnistrador o no
-            FROM Usuario
-            WHERE Username = @in_Username AND Pass = @in_Pass;
+            FROM Usuario 
+				WHERE CAST(Username AS VARBINARY(64)) = CAST(@in_Username AS VARBINARY(64)) 
+				AND CAST(Pass AS VARBINARY(128)) = CAST(@in_Pass AS VARBINARY(128))
 			
 			SET @out_CodigoRespuesta = 0; --Si existe, corigo de exito al iniciar sesion
 

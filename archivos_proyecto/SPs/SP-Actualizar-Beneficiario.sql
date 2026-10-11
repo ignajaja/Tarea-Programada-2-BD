@@ -15,23 +15,6 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 		
-		--Valida que la suma de los porcentajes sea 100
-		DECLARE @NumeroCuenta INT;
-		SELECT @NumeroCuenta = NumeroCuenta FROM Beneficiario WHERE Id = @in_BeneficiarioId;
-		
-		DECLARE @SumaPorcentajes INT;
-		SELECT @SumaPorcentajes = ISNULL(SUM(Porcentaje),0) + @in_Porcentaje
-		FROM Beneficiario
-		WHERE NumeroCuenta = @NumeroCuenta AND Activo = 1 AND Id <> @in_BeneficiarioId;
-		
-		IF @SumaPorcentajes <> 100
-		BEGIN
-			SET @out_Codigo = 1;
-			SET @out_Mensaje =  'Error: La suma de los porcentajes de los beneficiarios debe ser 100%'
-			ROLLBACK TRANSACTION;
-			RETURN;
-		END
-
         -- Se guarda el json antes de realizar el cambio
         DECLARE @jsonAntes VARCHAR(MAX);
 		SET @jsonAntes = (
