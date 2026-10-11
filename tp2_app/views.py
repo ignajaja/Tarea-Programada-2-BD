@@ -11,16 +11,14 @@ def iniciar_sesion(request):
         
         with connection.cursor() as cursor:
 
-            es_admin_out = cursor.var(int)
-            codigo_out = cursor.var(int)
-
             cursor.execute(
                 'EXEC dbo.sp_IniciarSesion @in_Username = ?, @in_Pass = ?, @out_EsAdministrador = ?, @out_CodigoRespuesta = ?',
-                [usuario, contrasena, es_admin_out, codigo_out]
+                [usuario, contrasena]
             )
+            fila = cursor.fetchdone()
             
-            es_admin = es_admin_out.value if es_admin_out.value is not None else 0
-            codigo = codigo_out.value if codigo_out.value is not None else 1
+            es_admin = fila[0] if fila and fila[0] is not None else 0
+            codigo = fila[1] if fila and fila[1] is not None else 1
             
             if codigo == 0:
                 request.session['username'] = usuario
@@ -74,18 +72,15 @@ def editar_beneficiarios(request, pk):
             nuevo_porcentaje = form_beneficiario.cleaned_data['porcentaje']
 
             with connection.cursor() as cursor:
-
-                #variables de salida
-                codigo_out = cursor.var(int)
-                mensaje_out = cursor.var(str)
+        
                 
                 cursor.execute(
-                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = ?, @in_BeneficiarioId = ?, @in_NombrePersona = ?, @in_Porcentaje = ?, @out_Codigo = 0, @out_Mensaje=?",
+                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = ?, @in_BeneficiarioId = ?, @in_NombrePersona = ?, @in_IdParentezco, @in_Porcentaje = ?",
                     [usuario_actual, pk, nuevo_nombre, nuevo_parentesco, nuevo_porcentaje]
                 )
-
-                codigo_respuesta = codigo_out.value
-                mensaje_respuesta = mensaje_out.value
+                fila = cursor.fetchdone()
+                codigo_respuesta = fila[0] if fila and fila[0] is not None else 2
+                mensaje_respuesta = fila[1] if fila and fila[1] is not None else "Error al editar beneficiario"
 
             if codigo_respuesta == 0:
                 messages.success(request, mensaje_respuesta)

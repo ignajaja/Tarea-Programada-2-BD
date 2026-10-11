@@ -3,14 +3,34 @@ CREATE OR ALTER PROCEDURE dbo.sp_ActualizarBeneficiario
     @in_BeneficiarioId INT,
     @in_NombrePersona VARCHAR(64),
     @in_IdParentezco INT,
-    @in_Porcentaje INT,
-    @out_Codigo INT OUTPUT, --0 para exito 1 para cualquier otro
-    @out_Mensaje VARCHAR(256) OUTPUT
+    @in_Porcentaje INT
 AS
 BEGIN
     SET NOCOUNT ON;
+	
+	DECLARE @out_Codigo INT = 0; --0 para exito, 1 para porcentaje invalido y 2 para cualquier otro
+    DECLARE @out_Mensaje VARCHAR(256) = '';
+	
+	
     BEGIN TRY
         BEGIN TRANSACTION;
+		
+		--Valida que la suma de los porcentajes sea 100
+		DECLARE @NumeroCuenta INT;
+		SELECT @NumeroCuenta = NumeroCuenta FROM Beneficiario WHERE Id = @in_BeneficiarioId;
+		
+		DECLARE @SumaPorcentajes INT;
+		SELECT @SumaPorcentajes = ISNULL(SUM(Porcentaje),0) + @in_Porcentaje
+		FROM Beneficiario
+		WHERE NumeroCuenta = @NumeroCuenta AND Activo = 1 AND Id <> @in_BeneficiarioId;
+		
+		IF @SumaPorcentajes <> 100
+		BEGIN
+			SET @out_Codigo = 1;
+			SET @out_Mensaje =  'Error: La suma de los porcentajes de los beneficiarios debe ser 100%'
+			ROLLBACK TRANSACTION;
+			RETURN;
+		END
 
         -- Se guarda el json antes de realizar el cambio
         DECLARE @jsonAntes VARCHAR(MAX);
@@ -58,7 +78,10 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        SET @out_Codigo = 1;
+        SET @out_Codigo = 2;
         SET @out_Mensaje = ERROR_MESSAGE();
     END CATCH
+	
+	SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+	
 END;

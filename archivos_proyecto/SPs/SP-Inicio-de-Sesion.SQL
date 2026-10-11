@@ -1,11 +1,12 @@
 CREATE OR ALTER PROCEDURE dbo.sp_IniciarSesion
     @in_Username VARCHAR(64),
-    @in_Pass VARCHAR(128),
-    @out_EsAdministrador BIT OUTPUT,
-    @out_CodigoRespuesta INT OUTPUT --0 para exito y 1 para error en credenciales
+    @in_Pass VARCHAR(128)
 AS
 BEGIN
 	SET NOCOUNT ON;
+	
+	DECLARE @out_EsAdministrador BIT = 0;
+    DECLARE @out_CodigoRespuesta INT = 1; --0 para exito y 1 para error en credenciales
 	
 	BEGIN TRY
 		BEGIN TRANSACTION; 
@@ -43,4 +44,7 @@ BEGIN
 		SET @out_CodigoRespuesta = ERROR_NUMBER(); 
 		SET @out_EsAdministrador = 0; 
 	END CATCH
+	
+	SELECT @out_EsAdministrador AS EsAdministrador, @out_CodigoRespuesta AS CodigoRespuesta;
+	
 END;
