@@ -27,6 +27,14 @@ def iniciar_sesion(request):
 
     return render(request, 'login.html')
 
+def cerrar_sesion(request):
+    if 'username' in request.session:
+        usuario_actual = request.session['username']
+        with connection.cursor() as cursor:
+            cursor.execute("EXEC dbo.sp_CerrarSesion @in_Username = %s", [usuario_actual])
+        request.session.flush()
+    return redirect('login')
+
 
 def editar_beneficiarios(request, pk):
     beneficiario = get_object_or_404(Beneficiario.objects.select_related('persona'), pk=pk, activo=True)
@@ -51,7 +59,3 @@ def editar_beneficiarios(request, pk):
     return render(request, 'editar_beneficiarios.html', {'beneficiario': beneficiario, 'form_persona': form_persona, 'form_beneficiario': form_beneficiario})
 
 
-
-def lista_beneficiarios(request):
-    beneficiarios = Beneficiario.objects.filter(activo=True).select_related('persona__tipo_documento', 'parentesco')
-    return render(request, 'lista_beneficiarios.html', {'beneficiarios': beneficiarios})
