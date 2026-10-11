@@ -17,6 +17,7 @@
                 <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
             </h3>
 
+            <!-- Formulario de inicio de sesion con los espacios para usuario y contraena -->
             <form id="formLogin" action="{% url 'login' %}" method="POST">
                 {% csrf_token %}
 
@@ -40,6 +41,7 @@
                     Ingresar
                 </button>
 
+                <!-- Espacio para mostrar mensajes si luego de ejecutar el SP, views envia un mensaje-->
                 <div class="mt-3" id="seccionErrores">
                     {% if messages %} 
                         {% for message in messages %}
@@ -54,6 +56,8 @@
                 </div>
             </form>
 
+            <!-- Validacion en interfaz que no se envien espacios vacios ni campos nulos
+             de lo contrario muestra un mensaje indicandolo -->
             <script>
                 document.getElementById('formLogin').addEventListener('submit', function (event) {
                     event.preventDefault();

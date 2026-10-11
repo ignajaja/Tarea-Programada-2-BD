@@ -1,5 +1,6 @@
 CREATE OR ALTER PROCEDURE dbo.sp_ConsultarEstadosDeCuenta
-    @in_Username VARCHAR(64)
+    @in_Username VARCHAR(64),
+	@in_IP VARCHAR(64) = '0.0.0.0'
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -24,5 +25,5 @@ BEGIN
     ORDER BY Estado_Cuenta.fechafin DESC;
 
     -- Registrar en bitácora con tipo de operacion 7
-    EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 7;
+    EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 7, @in_IP = @in_IP;
 END;

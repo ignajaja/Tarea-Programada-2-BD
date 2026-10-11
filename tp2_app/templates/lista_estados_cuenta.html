@@ -41,11 +41,12 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- recorrido de la lista de estados de cuenta recibidas del view para poder mostrarlos-->
                         {% for e in estados_cuenta %}
                         <tr class="text-center position-relative" style="cursor: pointer;"
                             onclick="window.location.href='#';">
                             <td class="fw-semibold text-start">
-                                <!-- Enlace estirado para que la fila responda al clic manteniendo la semántica -->
+                                <!-- Click sobre el estado de cuenta -->
                                 <a href="#" class="stretched-link text-decoration-none text-dark">
                                     {{ e.numerocuenta }}
                                 </a>
@@ -61,6 +62,8 @@
                             <td>{{ e.cantsinpeentrantes }}</td>
                             <td>{{ e.cantsinpesalientes }}</td>
                         </tr>
+                        
+                        <!-- si la lista de estados de cuenta es vacia se indica -->
                         {% empty %}
                         <tr>
                             <td colspan="11" class="text-center text-muted py-4">

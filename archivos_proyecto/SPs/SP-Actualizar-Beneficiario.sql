@@ -3,7 +3,8 @@ CREATE OR ALTER PROCEDURE dbo.sp_ActualizarBeneficiario
     @in_BeneficiarioId INT,
     @in_NombrePersona VARCHAR(64),
     @in_IdParentezco INT,
-    @in_Porcentaje INT
+    @in_Porcentaje INT,
+	@in_IP VARCHAR(64) = '0.0.0.0'
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -53,7 +54,7 @@ BEGIN
 		);
 
         -- Se registra el cambio en la bitacora con tipo de operacion 4 que corresponde a actualizar un beneficiario
-        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 4, @in_JsonAntes = @jsonAntes, @in_JsonDespues = @jsonDespues;
+        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 4, @in_JsonAntes = @jsonAntes, @in_JsonDespues = @jsonDespues, @in_IP = @in_IP;
 
         COMMIT TRANSACTION;
         SET @out_Codigo = 0;
