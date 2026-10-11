@@ -12,7 +12,7 @@ def iniciar_sesion(request):
         with connection.cursor() as cursor:
 
             cursor.execute(
-                'EXEC dbo.sp_IniciarSesion @in_Username = ?, @in_Pass = ?, @out_EsAdministrador = ?, @out_CodigoRespuesta = ?',
+                'EXEC dbo.sp_IniciarSesion @in_Username = ?, @in_Pass = ?',
                 [usuario, contrasena]
             )
             fila = cursor.fetchdone()
