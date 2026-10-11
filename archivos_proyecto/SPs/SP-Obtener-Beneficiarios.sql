@@ -17,8 +17,8 @@ BEGIN
     INNER JOIN Persona ON Beneficiario.ValorDocumentoIdentidadBeneficiario = Persona.ValorDocumentoIdentidad
     INNER JOIN Parentesco ON Beneficiario.ParentezcoId = Parentesco.Id
     INNER JOIN Tipo_Doc ON Persona.TipoDocuIdentidad = Tipo_Doc.Id
-    INNER JOIN Cuentas ON Beneficiario.NumeroCuenta = Cuentas.NumeroCuenta
-    INNER JOIN Usuarios_Ver ON Cuentas.NumeroCuenta = Usuarios_Ver.NumeroCuenta
+    INNER JOIN Cuenta ON Beneficiario.NumeroCuenta = Cuenta.NumeroCuenta
+    INNER JOIN Usuarios_Ver ON Cuenta.NumeroCuenta = Usuarios_Ver.NumeroCuenta
     WHERE Usuarios_Ver.Username = @in_Username 
       AND Beneficiario.Activo = 1;
 END;

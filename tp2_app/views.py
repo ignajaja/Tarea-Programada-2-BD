@@ -15,7 +15,7 @@ def iniciar_sesion(request):
                 'EXEC dbo.sp_IniciarSesion @in_Username = %s, @in_Pass = %s',
                 [usuario, contrasena]
             )
-            fila = cursor.fetchdone()
+            fila = cursor.fetchone()
             
             es_admin = fila[0] if fila and fila[0] is not None else 0
             codigo = fila[1] if fila and fila[1] is not None else 1
@@ -78,7 +78,7 @@ def editar_beneficiarios(request, pk):
                     "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentezco, @in_Porcentaje = %s",
                     [usuario_actual, pk, nuevo_nombre, nuevo_parentesco, nuevo_porcentaje]
                 )
-                fila = cursor.fetchdone()
+                fila = cursor.fetchone()
                 codigo_respuesta = fila[0] if fila and fila[0] is not None else 2
                 mensaje_respuesta = fila[1] if fila and fila[1] is not None else "Error al editar beneficiario"
 

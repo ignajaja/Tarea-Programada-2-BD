@@ -11,10 +11,10 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION; 
 		
-		IF EXISTS (SELECT 1 FROM Usuarios WHERE Username = @in_Username AND Pass = @in_Pass) --Revisar que el usuario exista
+		IF EXISTS (SELECT 1 FROM Usuario WHERE Username = @in_Username AND Pass = @in_Pass) --Revisar que el usuario exista
 		BEGIN 
 			SELECT @out_EsAdministrador = EsAdministrador  --Consulta valor de si es admnistrador o no
-            FROM Usuarios 
+            FROM Usuario
             WHERE Username = @in_Username AND Pass = @in_Pass;
 			
 			SET @out_CodigoRespuesta = 0; --Si existe, corigo de exito al iniciar sesion
