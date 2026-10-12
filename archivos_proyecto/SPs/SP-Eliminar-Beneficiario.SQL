@@ -1,8 +1,14 @@
 CREATE OR ALTER PROCEDURE dbo.sp_EliminarBeneficiario
     @in_Username VARCHAR(64),
     @in_BeneficiarioId INT,
+<<<<<<< Updated upstream
     @in_IP VARCHAR(64) = '0.0.0.0'
     
+=======
+    @out_Codigo INT OUTPUT,
+    @out_Mensaje VARCHAR(256) OUTPUT,
+	@in_IP VARCHAR(64) = '0.0.0.0'
+>>>>>>> Stashed changes
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -72,7 +78,7 @@ BEGIN
 		);
 
         --En la bitacora se registra con operacion 5 que corresponde a eliminar beneficiario
-        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 5, @in_JsonAntes = @jsonAntes, @in_JsonDespues = @jsonDespues;
+        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 5, @in_JsonAntes = @jsonAntes, @in_JsonDespues = @jsonDespues, @in_IP = @in_IP;
 
         COMMIT TRANSACTION;
         SET @out_Codigo = 0;

@@ -10,7 +10,13 @@ CREATE OR ALTER PROCEDURE dbo.sp_AgregarBeneficiario
     @in_Tel2 VARCHAR(16),
     @in_IdParentezco INT,
     @in_Porcentaje INT,
+<<<<<<< Updated upstream
     @in_IP VARCHAR(64) = '0.0.0.0'
+=======
+    @out_Codigo INT OUTPUT, -- Se usa 0 para éxito al agregar, 1 para limite de usuarios alcanzados, 2 otros errores
+    @out_Mensaje VARCHAR(256) OUTPUT,
+	@in_IP VARCHAR(64) = '0.0.0.0'
+>>>>>>> Stashed changes
 AS
 BEGIN
     SET NOCOUNT ON;

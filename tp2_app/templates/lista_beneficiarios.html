@@ -21,11 +21,10 @@
                 {% endfor %}
             {% endif %}
             
-            <!-- Tabla para listar los beneficiarios -->
-
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead class="table-primary">
+            <!-- Tabla para listar los beneficiarios con contenedor scrolleable -->
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-striped table-hover align-middle sticky-top">
+                    <thead class="table-primary position-sticky top-0" style="z-index: 1;">
                         <tr>
                             <th>Cuenta</th>
                             <th>Nombre</th>
@@ -47,21 +46,23 @@
                             <td>{{ b.porcentaje }}%</td>
                             <td>{{ b.tipodocumento }}: {{ b.valordocumento }}</td>
                             <td class="text-center">
-                                <a class="btn btn-sm btn-primary fw-semibold" href="{% url 'editar_beneficiarios' b.beneficiarioid %}">
-                                    <i class="bi bi-pencil-square me-1"></i>Editar
-                                </a>
-                            <form method="post" action="{% url 'eliminar_beneficiario' b.beneficiarioid %}" class="m-1" onsubmit="return confirm('¿Eliminar beneficiario de la cuenta?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger fw-semibold"><i class="bi bi-trash">Eliminar</i></button>
-
-                            </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a class="btn btn-sm btn-primary fw-semibold" href="{% url 'editar_beneficiarios' b.beneficiarioid %}">
+                                        <i class="bi bi-pencil-square me-1"></i>Editar
+                                    </a>
+                                    <form method="post" action="{% url 'eliminar_beneficiario' b.beneficiarioid %}" class="m-0" onsubmit="return confirm('¿Eliminar beneficiario de la cuenta?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger fw-semibold"><i class="bi bi-trash"></i> Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                          
                         <!-- Si la lista es vacia, muestra un mensaje de que no hay beneficiarios en la cuenta-->
 
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 No se encontraron beneficiarios asociados a esta cuenta.
                             </td>
                         </tr>
