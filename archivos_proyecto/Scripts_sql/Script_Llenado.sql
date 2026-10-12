@@ -1,7 +1,7 @@
 DECLARE @datos XML;
 
 SELECT @datos = BulkColumn
-FROM OPENROWSET(BULK 'C:\archivoBDD\catalogos.xml', SINGLE_BLOB) AS x;
+FROM OPENROWSET(BULK 'C:\Users\Public\Documents\catalogos.xml', SINGLE_BLOB) AS x;
 
 -- --- INSERTS FOR: TipoDocuIdentidad ---
 INSERT INTO Tipo_Doc(Id, Nombre)
@@ -21,7 +21,7 @@ FROM @datos.nodes('//Tipo_Moneda/TipoMoneda') AS T(Node);
 
 
 -- --- INSERTS FOR: Parentezco ---
-INSERT INTO Parentezcos (Id, Nombre)
+INSERT INTO Parentesco (Id, Nombre)
 SELECT 
     Node.value('@Id', 'INT') AS Id,
     Node.value('@Nombre', 'VARCHAR(50)') AS Nombre
@@ -49,16 +49,10 @@ FROM @datos.nodes('//Tipo_Cuenta_Ahorros/TipoCuentaAhorro') AS T(Node);
 
 
 --Inserts Catalogo Tipos de operacion--
-INSERT INTO TipoOperaciones (Id, Nombre)
+INSERT INTO TipoOperacion (Id, Nombre)
 SELECT 
     Node.value('@id', 'INT') AS Id,
     Node.value('@nombre', 'VARCHAR(100)') AS Nombre
 FROM @datos.nodes('//TipoOperaciones/TipoOperacion') AS T(Node);
 
 
---Prueba final--
-SELECT * FROM Tipo_Doc;
-SELECT * FROM Tipo_Moneda;
-SELECT * FROM Parentezcos;
-SELECT * FROM Tipo_Cuenta_Ahorros;
-SELECT * FROM TipoOperaciones;
