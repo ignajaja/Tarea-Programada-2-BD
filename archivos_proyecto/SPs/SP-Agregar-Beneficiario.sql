@@ -10,20 +10,49 @@ CREATE OR ALTER PROCEDURE dbo.sp_AgregarBeneficiario
     @in_Tel2 VARCHAR(16),
     @in_IdParentezco INT,
     @in_Porcentaje INT,
-    @out_Codigo INT OUTPUT, -- Se usa 0 para éxito al agregar, 1 para limite de usuarios alcanzados, 2 otros errores
-    @out_Mensaje VARCHAR(256) OUTPUT
+    @in_IP VARCHAR(64) = '0.0.0.0'
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- 0 exito, 1 limite de beneficiarios alcanzado, 2 otros errores,
+    -- 3 la cuenta no pertenece al usuario, 4 la persona ya es beneficiaria activa de la cuenta
+    DECLARE @out_Codigo INT = 2;
+    DECLARE @out_Mensaje VARCHAR(256) = '';
+
     BEGIN TRY
         BEGIN TRANSACTION;
+
+        -- Valida que la cuenta pertenezca al usuario que tiene la sesion activa
+        IF NOT EXISTS (SELECT 1 FROM Usuarios_Ver WHERE Username = @in_Username AND NumeroCuenta = @in_NumeroCuenta)
+        BEGIN
+            SET @out_Codigo = 3;
+            SET @out_Mensaje = 'Error al agregar beneficiario: la cuenta indicada no pertenece al usuario.';
+            ROLLBACK TRANSACTION;
+            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+            RETURN;
+        END
 
         -- Validar que no haya 3 beneficiarios
         IF (SELECT COUNT(*) FROM Beneficiario WHERE NumeroCuenta = @in_NumeroCuenta AND Activo = 1) >= 3 --Cuenta si son 3 o mas
         BEGIN
-            SET @out_Codigo = 1; --Setea el codigo en 1
+            SET @out_Codigo = 1;
             SET @out_Mensaje = 'Error al agregar beneficiario: la cuenta ya alcanzó el límite de beneficiarios.';
             ROLLBACK TRANSACTION;
+            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+            RETURN;
+        END
+
+        -- Valida que la persona no sea ya beneficiaria activa de esa cuenta (para cambiarla se usa Editar)
+        IF EXISTS (SELECT 1 FROM Beneficiario
+                   WHERE NumeroCuenta = @in_NumeroCuenta
+                     AND ValorDocumentoIdentidadBeneficiario = @in_ValorDoc
+                     AND Activo = 1)
+        BEGIN
+            SET @out_Codigo = 4;
+            SET @out_Mensaje = 'Error al agregar beneficiario: esa persona ya es beneficiaria de la cuenta, puede modificarla desde Editar.';
+            ROLLBACK TRANSACTION;
+            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
             RETURN;
         END
 
@@ -41,13 +70,13 @@ BEGIN
         -- Se genera el json para la bitacora
         DECLARE @jsonNuevo VARCHAR(MAX);
         SET @jsonNuevo = (
-            SELECT Nombre, ValorDocumentoIdentidad AS Documento, @in_Porcentaje AS Porcentaje 
-            FROM Persona WHERE ValorDocumentoIdentidad = @in_ValorDoc 
+            SELECT Nombre, ValorDocumentoIdentidad AS Documento, @in_Porcentaje AS Porcentaje
+            FROM Persona WHERE ValorDocumentoIdentidad = @in_ValorDoc
             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
         );
 
         -- Se registra en la bitacora el cambio, tipo operacion 3 corresponde a agregar beneficiario
-        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 3, @in_JsonAntes = NULL, @in_JsonDespues = @jsonNuevo;
+        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 3, @in_JsonAntes = NULL, @in_JsonDespues = @jsonNuevo, @in_IP = @in_IP;
 
         COMMIT TRANSACTION;
         SET @out_Codigo = 0; --Si todo sale bien codigo 0 de exito
@@ -58,4 +87,6 @@ BEGIN
         SET @out_Codigo = 2;
         SET @out_Mensaje = ERROR_MESSAGE();
     END CATCH
+
+    SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
 END;

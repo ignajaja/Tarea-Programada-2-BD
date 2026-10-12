@@ -1,7 +1,7 @@
 from django.db import connection, transaction
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
-from .forms import BeneficiarioForm, PersonaForm
+from .forms import BeneficiarioForm, PersonaForm, AgregarBeneficiarioForm
 from .models import Beneficiario
 
 #Función que permite obtener la ip del usuario actual, decuelve la direccion ip
@@ -216,3 +216,65 @@ def redireccion_inicio(request):
     if 'username' in request.session:
         return redirect('lista_beneficiarios')
     return redirect('login')
+
+
+
+def obtener_filas(sql, parametros=None):
+    with connection.cursor() as cursor:
+        cursor.execute(sql, parametros or [])
+        columnas = [col[0].lower() for col in cursor.description]
+        return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+def agregar_beneficiario(request):
+
+    if 'username' not in request.session:
+        return redirect('login')
+
+    usuario_actual = request.session['username']
+    ip_cliente = obtener_ip(request)
+
+    cuentas = [f['numerocuenta'] for f in obtener_filas("EXEC dbo.sp_ObtenerCuentasUsuario @in_Username = %s", [usuario_actual])]
+
+    # cuentas = [f['numerocuenta'] for f in obtener_filas("EXEC dbo.sp_ObtenerCuentasUsuario @in_Username = %s", [usuario_actual])]
+    tipos_documento = [(f['id'], f['nombre']) for f in obtener_filas("EXEC dbo.sp_ObtenerTiposDocumento")]
+    parentescos = [(f['id'], f['nombre']) for f in obtener_filas("EXEC dbo.sp_ObtenerParentescos")]
+
+    if request.method == 'POST':
+        form = AgregarBeneficiarioForm(request.POST, cuentas = cuentas, tipos_documento=tipos_documento, parentescos = parentescos)
+        if form.is_valid():
+            datos = form.cleaned_data
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "EXEC dbo.sp_AgregarBeneficiario @in_Username = %s, @in_NumeroCuenta = %s, @in_TipoDoc = %s, "
+                    "@in_NombrePersona = %s, @in_ValorDoc = %s, @in_FechaNac = %s, @in_Email = %s, @in_Tel1 = %s, "
+                    "@in_Tel2 = %s, @in_IdParentezco = %s, @in_Porcentaje = %s, @in_IP = %s",
+                    [usuario_actual, int(datos['numero_cuenta']), int(datos['tipo_documento']), datos['nombre'],
+                     datos['valor_documento'], datos['fecha_nacimiento'], datos['email'], datos['telefono1'],
+                     datos['telefono2'], int(datos['parentesco']), datos['porcentaje'], ip_cliente]
+                )
+                row = None
+                while True:
+                    if cursor.description is not None:
+                        row = cursor.fetchone()
+                        if row is not None:
+                            break
+                    try:
+                        if not cursor.nextset():
+                            break
+                    except Exception:
+                        break
+
+                codigo_respuesta = row[0] if row and row[0] is not None else 2
+                mensaje_respuesta = row[1] if row and row[1] is not None else "Error al agregar beneficiario"
+
+            if codigo_respuesta == 0:
+                messages.success(request, mensaje_respuesta)
+                return redirect('lista_beneficiarios')
+
+            messages.error(request, mensaje_respuesta)
+    else:
+        form = AgregarBeneficiarioForm(cuentas=cuentas, tipos_documento=tipos_documento, parentescos=parentescos)
+
+    return render(request, 'agregar_beneficiarios.html', {'form':form})
+
