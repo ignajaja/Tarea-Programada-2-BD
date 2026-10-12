@@ -50,7 +50,11 @@
                                 <a class="btn btn-sm btn-primary fw-semibold" href="{% url 'editar_beneficiarios' b.beneficiarioid %}">
                                     <i class="bi bi-pencil-square me-1"></i>Editar
                                 </a>
-                            </td>
+                            <form method="post" action="{% url 'eliminar_beneficiario' b.beneficiarioid %}" class="m-1" onsubmit="return confirm('¿Eliminar beneficiario de la cuenta?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger fw-semibold"><i class="bi bi-trash">Eliminar</i></button>
+
+                            </form>
                         </tr>
                          
                         <!-- Si la lista es vacia, muestra un mensaje de que no hay beneficiarios en la cuenta-->

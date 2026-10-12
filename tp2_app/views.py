@@ -278,3 +278,42 @@ def agregar_beneficiario(request):
 
     return render(request, 'agregar_beneficiarios.html', {'form':form})
 
+def eliminar_beneficiario(request, pk):
+    if 'username' not in request.session:
+        return redirect('login')
+
+    if request.method != 'POST':
+        return redirect('lista_beneficiarios')
+
+    usuario_actual = request.session['username']
+    ip_cliente = obtener_ip(request)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "EXEC dbo.sp_EliminarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_IP = %s",
+            [usuario_actual, pk, ip_cliente]
+
+        )
+
+        row = None
+        while True:
+            if cursor.description is not None:
+                row = cursor.fetchone()
+                if row is not None:
+                    break
+            try:
+                if not cursor.nextset():
+                    break
+            except Exception:
+                break
+
+        codigo_respuesta = row[0] if row and row[0] is not None else 1
+        mensaje_respuesta = row[1] if row and row[1] is not None else "Error al eliminar beneficiario"
+
+
+    if codigo_respuesta ==0 :
+        messages.success(request, mensaje_respuesta)
+    else:
+        messages.error(request, mensaje_respuesta)
+
+    return redirect('lista_beneficiarios')
