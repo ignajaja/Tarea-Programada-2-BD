@@ -117,48 +117,63 @@ def lista_beneficiarios(request):
 
 #función para realizar la edicion de beneficiarios
 def editar_beneficiarios(request, pk):
-
-    #se verigica que haya una sesion activa y si no redirige al login
     if 'username' not in request.session:
         return redirect('login')
 
-    #si hay se sion se obtiene usuario y su ip
     usuario_actual = request.session['username']
     ip_cliente = obtener_ip(request)
 
-    #se obtiene el beneficiario asociado a la pk y que su estado sea activo
-    beneficiario = get_object_or_404(Beneficiario.objects.select_related('persona'), pk=pk, activo = True)
-    #se obtiene la entidad persona asociada a ese beneficiario
-    persona = beneficiario.persona
+    # Llamado  al SP para obtener datos del beneficiario y persona asociada
+    datos = obtener_filas("EXEC dbo.sp_ObtenerDetalleBeneficiario @in_BeneficiarioId = %s", [pk])
+    
+    if not datos:
+        messages.error(request, "El beneficiario no existe o está inactivo.")
+        return redirect('lista_beneficiarios')
 
-    #si se llama con el metodo post
+    row = datos[0]
+
+    # Instanciar modelos para los ModelForm
+    persona = Persona(
+        id=row['personaid'],
+        nombre=row['nombre'],
+        tipo_documento_id=row['tipodocumentoid'],
+        valor_documento=row['valordocumento'],
+        fecha_nacimiento=row['fechanacimiento'],
+        email=row['email'],
+        telefono1=row['telefono1'],
+        telefono2=row['telefono2']
+    )
+    beneficiario = Beneficiario(
+        id=row['beneficiarioid'],
+        persona=persona,
+        id_parentesco_id=row['parentescoid'],
+        porcentaje=row['porcentaje']
+    )
+
     if request.method == 'POST':
-
-        #se crean los formularios con los datos que se hayan reciidos
         form_persona = PersonaForm(request.POST, instance=persona)
         form_beneficiario = BeneficiarioForm(request.POST, instance=beneficiario)
 
-        #verificar que los formularios sean correctos
         if form_persona.is_valid() and form_beneficiario.is_valid():
-
-            #si son validos, se extraen los datos ingresados en los formularios
             nuevo_nombre = form_persona.cleaned_data['nombre']
-            nuevo_parentesco = form_beneficiario.cleaned_data['parentesco'].id
+            
+            parentesco_val = form_beneficiario.cleaned_data['parentesco']
+            nuevo_parentesco = parentesco_val.id if hasattr(parentesco_val, 'id') else parentesco_val
+            
             nuevo_porcentaje = form_beneficiario.cleaned_data['porcentaje']
 
-            #llamado al sp de actualizar un beneficiario,se le pasa la ip para poder hacer el registro en bitacora
+            # Llamado al SP de actualización
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentezco = %s, @in_Porcentaje = %s, @in_IP = %s",
+                    "EXEC dbo.sp_ActualizarBeneficiario @in_Username = %s, @in_BeneficiarioId = %s, @in_NombrePersona = %s, @in_IdParentesco = %s, @in_Porcentaje = %s, @in_IP = %s",
                     [usuario_actual, pk, nuevo_nombre, nuevo_parentesco, nuevo_porcentaje, ip_cliente]
                 )
 
-                #aca se guarda la fila que devuelve el sp
-                row = None
+                r = None
                 while True:
                     if cursor.description is not None:
-                        row = cursor.fetchone() #si tiene valores validos revuelve la fila, de lo contrario no
-                        if row is not None:
+                        r = cursor.fetchone()
+                        if r is not None:
                             break
                     try:
                         if not cursor.nextset():
@@ -166,31 +181,22 @@ def editar_beneficiarios(request, pk):
                     except Exception:
                         break
 
-                #se obtienen el codigo y el mensaje de lo que haya retornado el SP
-                codigo_respuesta = row[0] if row and row[0] is not None else 2
-                mensaje_respuesta = row[1] if row and row[1] is not None else "Error al editar beneficiario"
+                codigo_respuesta = r[0] if r and r[0] is not None else 2
+                mensaje_respuesta = r[1] if r and r[1] is not None else "Error al editar beneficiario"
 
-            #codigo 0 de exito
             if codigo_respuesta == 0:
                 messages.success(request, mensaje_respuesta)
                 return redirect('lista_beneficiarios')
-
-            #codigo de error
-            elif codigo_respuesta == 1:
-                messages.error(request, mensaje_respuesta)
-                return redirect('lista_beneficiarios')
             else:
-                messages.error(request, "Error: " + str(mensaje_respuesta))
+                messages.error(request, mensaje_respuesta)
     else:
-        #si no es metodo post, se muestran los formularios con los datos actuales del beneficiario
         form_beneficiario = BeneficiarioForm(instance=beneficiario)
         form_persona = PersonaForm(instance=persona)
 
-    #Se renderiza el template enviando el beneficiario y los formularios
     return render(request, 'editar_beneficiarios.html', {
-        'beneficiario' : beneficiario,
-        'form_persona' : form_persona,
-        'form_beneficiario' : form_beneficiario
+        'beneficiario': beneficiario,
+        'form_persona': form_persona,
+        'form_beneficiario': form_beneficiario
     })
 
 #funcion para obtener los estados de cuenta
