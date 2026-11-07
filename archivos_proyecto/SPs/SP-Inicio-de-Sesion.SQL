@@ -11,11 +11,11 @@ BEGIN
     DECLARE @EsAdmin BIT = 0;          -- indicador de privilegios
     DECLARE @Codigo INT = 1;           -- 1 por defecto (error o credenciales inválidas)
 
-    -- validar las credenciales del usuario
+    -- validar las credenciales forzando case sensitive con COLLATE
     SELECT @IdUsuario = Id, @EsAdmin = EsAdministrador
     FROM Usuario
-    WHERE Username = @in_Username 
-      AND Pass = @in_Pass;
+    WHERE Username COLLATE Latin1_General_CS_AS = @in_Username 
+      AND Pass COLLATE Latin1_General_CS_AS = @in_Pass;
 
     -- si el usuario existe, el inicio es exitoso
     IF @IdUsuario IS NOT NULL

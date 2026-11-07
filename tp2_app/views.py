@@ -72,43 +72,48 @@ def cerrar_sesion(request):
 
 #funcion para obtener la lista de beneficiarios
 def lista_beneficiarios(request):
-
-    #verificar que haya sesion activa y obtener usuario
     if 'username' not in request.session:
-        return redirect('login') #si no hay sesion va al login
+        return redirect('login')
 
     usuario_actual = request.session['username']
 
-    #llamado al sp que consulta los beneficiarios dado un usuario
-    with connection.cursor() as cursor:
-        cursor.execute("EXEC dbo.sp_ObtenerBeneficiarios @in_Username = %s", [usuario_actual])
+    # Obtener las cuentas a las que el usuario tiene acceso
+    cuentas = obtener_filas("EXEC dbo.sp_ObtenerCuentasUsuario @in_Username = %s", [usuario_actual])
+    
+    # Determinar qué cuenta está seleccionada (por defecto la primera si existe)
+    id_cuenta_seleccionada = request.GET.get('cuenta')
+    
+    if not id_cuenta_seleccionada and cuentas:
+        id_cuenta_seleccionada = cuentas[0]['idcuenta'] # Toma la primera cuenta por defecto
 
-        #se obtienen los nombres de lascolumnas de lo que retorne el sp, las para a minuscula
-        columnas = [col[0].lower() for col in cursor.description]
+    beneficiarios = []
+    if id_cuenta_seleccionada:
+        with connection.cursor() as cursor:
+            # Llamado al SP pasando el usuario y el ID de la cuenta específica
+            cursor.execute("EXEC dbo.sp_ObtenerBeneficiarios @in_Username = %s, @in_IdCuenta = %s", [usuario_actual, id_cuenta_seleccionada])
+            
+            if cursor.description:
+                columnas = [col[0].lower() for col in cursor.description]
+                beneficiarios = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
-        #se optienen los beneficiarios en tuplas de nombre de columna, fila
-        beneficiarios = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
-
-        #este for recorre los beneficiarios que se han obtenido uno a uno
+        # Validación de la suma de porcentajes para la cuenta seleccionada
         for b in beneficiarios:
-            #obtiene el id del beneficiario por el que va
             beneficiario_id = b.get('beneficiarioid') 
             if beneficiario_id:
-                #esto nos permite ejecutar el procedimiento almacenado de calcular los porcentajes dado un id de beneficiario
                 with connection.cursor() as cursor_suma:
                     cursor_suma.execute("EXEC dbo.sp_CalcularPorcentajes @in_BeneficiarioId = %s", [beneficiario_id])
-                    
-                    #devuelve una lista con el valor de la suma de los porcentajes de la cuenta
                     lista_suma = cursor_suma.fetchone()
                     suma_total = lista_suma[1] if lista_suma and lista_suma[1] is not None else 100
 
-                    #si la suma es diferente de 100, muestra un mensaje de advertencia
                     if suma_total != 100:
-                        messages.warning(request, "La suma de los porcentajes de sus beneficiarios en una o más de sus cuentas no suma 100, favor corregir y cancelar la edición")
-                        break #rompe el ciclo porque basta que con uno se imcumpla para la alerta
+                        messages.warning(request, "La suma de los porcentajes de sus beneficiarios en esta cuenta no suma 100%, favor corregir.")
+                        break
 
-    #renderiza la lista de beneficiarios y se le pasa la lista como parametro para que el html los pueda desplegar
-    return render(request, 'lista_beneficiarios.html', {'beneficiarios': beneficiarios})
+    return render(request, 'lista_beneficiarios.html', {
+        'beneficiarios': beneficiarios,
+        'cuentas': cuentas,
+        'cuenta_seleccionada': int(id_cuenta_seleccionada) if id_cuenta_seleccionada else None
+    })
 
 #función para realizar la edicion de beneficiarios
 def editar_beneficiarios(request, pk):
@@ -190,25 +195,37 @@ def editar_beneficiarios(request, pk):
 
 #funcion para obtener los estados de cuenta
 def lista_estados_cuenta(request):
-
-    #revisa que haya sesion si no la hay va al login
     if 'username' not in request.session:
         return redirect('login')
 
-    #si hay sesion se obtiene usuario y la ip
     usuario_actual = request.session['username']
     ip_cliente = obtener_ip(request)
 
-    #llamado al sp de consulta de estados de cuenta, se le pasa la ip para poder hacer el registro en la bitacora
-    with connection.cursor() as cursor:
-        cursor.execute("EXEC dbo.sp_ConsultarEstadosDeCuenta @in_Username = %s, @in_IP = %s", [usuario_actual, ip_cliente])
+    # Obtener las cuentas del usuario para el selector
+    cuentas = obtener_filas("EXEC dbo.sp_ObtenerCuentasUsuario @in_Username = %s", [usuario_actual])
+    
+    id_cuenta_seleccionada = request.GET.get('cuenta')
+    if not id_cuenta_seleccionada and cuentas:
+        id_cuenta_seleccionada = cuentas[0]['idcuenta']
 
-        #se devuelven los nombres de las columnas y los valores un una tupla de columnas, fila
-        columnas = [col[0].lower() for col in cursor.description]
-        estados_cuenta = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+    estados_cuenta = []
+    if id_cuenta_seleccionada:
+        with connection.cursor() as cursor:
+            # Llamado al SP pasando el usuario, la cuenta y la IP
+            cursor.execute(
+                "EXEC dbo.sp_ConsultarEstadosDeCuenta @in_Username = %s, @in_IdCuenta = %s, @in_IP = %s", 
+                [usuario_actual, id_cuenta_seleccionada, ip_cliente]
+            )
+            
+            if cursor.description:
+                columnas = [col[0].lower() for col in cursor.description]
+                estados_cuenta = [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
-    #renderiza la plantilla pasandole la lista de estados de cuenta del usuario y pueda mostrar los datos
-    return render(request, 'lista_estados_cuenta.html', {'estados_cuenta': estados_cuenta})
+    return render(request, 'lista_estados_cuenta.html', {
+        'estados_cuenta': estados_cuenta,
+        'cuentas': cuentas,
+        'cuenta_seleccionada': int(id_cuenta_seleccionada) if id_cuenta_seleccionada else None
+    })
 
 #función que permite conocer si hay una sesion activa para cuando se ingresa a la app sin ninguna url
 #si hay sesion va a la lista de beneficiarios, sino al login

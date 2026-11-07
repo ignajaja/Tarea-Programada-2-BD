@@ -10,8 +10,28 @@
                 <i class="bi bi-people-fill me-2"></i>Beneficiarios Asociados
             </h3>
 
-            <!-- Espacio por si hay mensajes para mostrar -->
-            
+            <!-- Formulario para seleccionar cuenta a consultar -->
+            <form method="get" class="row g-3 align-items-center mb-4 bg-light p-3 rounded border">
+                <div class="col-auto">
+                    <label for="cuentaSelect" class="col-form-label fw-bold">Seleccione la Cuenta:</label>
+                </div>
+                <div class="col-auto">
+                    <select name="cuenta" id="cuentaSelect" class="form-select" onchange="this.form.submit()">
+                        {% for c in cuentas %}
+                            <option value="{{ c.idcuenta }}" {% if c.idcuenta == cuenta_seleccionada %}selected{% endif %}>
+                                N.° Cuenta: {{ c.numerocuenta }}
+                            </option>
+                        {% empty %}
+                            <option value="">No hay cuentas disponibles</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary fw-bold">Filtrar</button>
+                </div>
+            </form>
+
+            <!-- Mensajes de alerta -->
             {% if messages %}
                 {% for message in messages %}
                 <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning text-dark fw-bold border-warning shadow-sm{% else %}alert-danger{% endif %} alert-dismissible fade show" role="alert">
@@ -21,9 +41,7 @@
                 {% endfor %}
             {% endif %}
 
-            
-            
-            <!-- Tabla para listar los beneficiarios con contenedor scrolleable -->
+            <!-- Tabla de beneficiarios -->
             <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                 <table class="table table-striped table-hover align-middle sticky-top">
                     <thead class="table-primary position-sticky top-0" style="z-index: 1;">
@@ -37,9 +55,6 @@
                         </tr>
                     </thead>
                     <tbody>
-
-                        <!-- Recorre la lista de los beneficiarios que recibio del views y los va mostrando -->
-                        
                         {% for b in beneficiarios %}
                         <tr>
                             <td>{{ b.numerocuenta }}</td>
@@ -59,9 +74,6 @@
                                 </div>
                             </td>
                         </tr>
-                         
-                        <!-- Si la lista es vacia, muestra un mensaje de que no hay beneficiarios en la cuenta-->
-
                         {% empty %}
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
