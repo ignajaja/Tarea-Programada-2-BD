@@ -1,32 +1,33 @@
 CREATE OR ALTER PROCEDURE dbo.sp_IniciarSesion
-    @in_Username VARCHAR(64),
-    @in_Pass VARCHAR(128),
-    @in_IP VARCHAR(64) = '0.0.0.0'
+    @in_Username VARCHAR(64),          -- usuario que intenta iniciar sesión
+    @in_Pass VARCHAR(64),              -- contraseña de acceso
+    @in_IP VARCHAR(64) = '0.0.0.0'     -- ip por defecto si no se recibe desde views.py
 AS
 BEGIN
-    SET NOCOUNT ON;
-    DECLARE @out_EsAdministrador BIT = 0;
-    DECLARE @out_CodigoRespuesta INT = 1;
-    
-    BEGIN TRY
-        BEGIN TRANSACTION; 
-        IF EXISTS (SELECT 1 FROM Usuario WHERE CAST(Username AS VARBINARY(64)) = CAST(@in_Username AS VARBINARY(64)) AND CAST(Pass AS VARBINARY(128)) = CAST(@in_Pass AS VARBINARY(128)))
-        BEGIN 
-            SELECT @out_EsAdministrador = EsAdministrador FROM Usuario WHERE CAST(Username AS VARBINARY(64)) = CAST(@in_Username AS VARBINARY(64)) AND CAST(Pass AS VARBINARY(128)) = CAST(@in_Pass AS VARBINARY(128));
-            SET @out_CodigoRespuesta = 0;
-            EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 1, @in_IP = @in_IP;
-        END
-        ELSE
-        BEGIN 
-            SET @out_EsAdministrador = 0; 
-            SET @out_CodigoRespuesta = 1;
-        END
-        COMMIT TRANSACTION; 
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        SET @out_CodigoRespuesta = ERROR_NUMBER(); 
-        SET @out_EsAdministrador = 0; 
-    END CATCH
-    SELECT @out_EsAdministrador AS EsAdministrador, @out_CodigoRespuesta AS CodigoRespuesta;
+    SET NOCOUNT ON; -- evitar mensajes sobre filas afectadas
+
+    -- inicializar variables de control de sesión
+    DECLARE @IdUsuario INT;            -- id numérico del usuario
+    DECLARE @EsAdmin BIT = 0;          -- indicador de privilegios
+    DECLARE @Codigo INT = 1;           -- 1 por defecto (error o credenciales inválidas)
+
+    -- validar las credenciales del usuario
+    SELECT @IdUsuario = Id, @EsAdmin = EsAdministrador
+    FROM Usuario
+    WHERE Username = @in_Username 
+      AND Pass = @in_Pass;
+
+    -- si el usuario existe, el inicio es exitoso
+    IF @IdUsuario IS NOT NULL
+    BEGIN
+        SET @Codigo = 0;
+
+        -- registrar el inicio de sesión en la bitácora (tipo de operación 1)
+        INSERT INTO Bitacora (IdUsuario, IdTipoOperacion, IP, FechaHora)
+        VALUES (@IdUsuario, 1, @in_IP, GETDATE());
+    END
+
+    -- retornar si es administrador y el código de resultado
+    SELECT @EsAdmin AS EsAdmin, @Codigo AS Codigo;
 END;
+GO

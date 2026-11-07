@@ -1,98 +1,132 @@
 CREATE OR ALTER PROCEDURE dbo.sp_AgregarBeneficiario
-    @in_Username VARCHAR(64),
-    @in_NumeroCuenta INT,
-    @in_TipoDoc INT,
-    @in_NombrePersona VARCHAR(64),
-    @in_ValorDoc VARCHAR(32),
-    @in_FechaNac DATE,
-    @in_Email VARCHAR(256),
-    @in_Tel1 VARCHAR(16),
-    @in_Tel2 VARCHAR(16),
-    @in_IdParentezco INT,
-    @in_Porcentaje INT,
-<<<<<<< Updated upstream
-    @in_IP VARCHAR(64) = '0.0.0.0'
-=======
-    @out_Codigo INT OUTPUT, -- Se usa 0 para éxito al agregar, 1 para limite de usuarios alcanzados, 2 otros errores
-    @out_Mensaje VARCHAR(256) OUTPUT,
-	@in_IP VARCHAR(64) = '0.0.0.0'
->>>>>>> Stashed changes
+    @in_Username VARCHAR(64),          -- usuario que realiza la acción
+    @in_IdCuenta INT,                  -- id de la cuenta a la que se asocia el beneficiario
+    @in_TipoDoc INT,                   -- id del tipo de documento de identidad
+    @in_NombrePersona VARCHAR(64),     -- nombre completo de la persona beneficiaria
+    @in_ValorDoc VARCHAR(32),          -- número o valor del documento de identidad
+    @in_FechaNac DATE,                 -- fecha de nacimiento del beneficiario
+    @in_Email VARCHAR(256),            -- correo electrónico de contacto
+    @in_Tel1 VARCHAR(16),              -- primer teléfono de contacto
+    @in_Tel2 VARCHAR(16),              -- segundo teléfono
+    @in_IdParentesco INT,              -- id del parentesco con el dueño de la cuenta
+    @in_Porcentaje INT,                -- porcentaje asignado de la herencia o cuenta
+    @out_Codigo INT OUTPUT,            -- código de resultado de la operación (0 éxito, otro error)
+    @out_Mensaje VARCHAR(256) OUTPUT,  -- mensaje del resultado
+    @in_IP VARCHAR(64) = '0.0.0.0'     -- ip por defecto si no se recibe desde views.py
 AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON; -- evitar mensajes sobre filas afectadas
 
-    -- 0 exito, 1 limite de beneficiarios alcanzado, 2 otros errores,
-    -- 3 la cuenta no pertenece al usuario, 4 la persona ya es beneficiaria activa de la cuenta
-    DECLARE @out_Codigo INT = 2;
-    DECLARE @out_Mensaje VARCHAR(256) = '';
+    -- inicializar variables de salida con éxito por defecto
+    SET @out_Codigo = 0;
+    SET @out_Mensaje = 'Beneficiario agregado exitosamente.';
 
+    -- obtener el id del usuario actual
+    DECLARE @IdUsuario INT;            -- id numérico del usuario
+    SELECT @IdUsuario = Id 
+    FROM Usuario 
+    WHERE Username = @in_Username;
+
+    -- verificar que la cuenta pertenezca al usuario
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM Usuarios_Ver 
+        WHERE IdUsuario = @IdUsuario 
+          AND IdCuenta = @in_IdCuenta
+    )
+    BEGIN
+        SET @out_Codigo = 3;
+        SET @out_Mensaje = 'La cuenta indicada no pertenece al usuario.';
+        SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+        RETURN;
+    END
+
+    -- verificar límite de beneficiarios activos (<= 3)
+    IF (
+        SELECT COUNT(*) 
+        FROM Beneficiario 
+        WHERE IdCuenta = @in_IdCuenta 
+          AND Activo = 1
+    ) >= 3
+    BEGIN
+        SET @out_Codigo = 1;
+        SET @out_Mensaje = 'La cuenta ya alcanzó el límite de beneficiarios.';
+        SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+        RETURN;
+    END
+
+    -- verificar si la persona beneficiaria ya existe en el sistema
+    DECLARE @IdPersonaBeneficiario INT; -- id de la persona en la tabla maestra
+    SELECT @IdPersonaBeneficiario = Id 
+    FROM Persona 
+    WHERE ValorDocumentoIdentidad = @in_ValorDoc;
+
+    -- si la persona no existe, se inserta previamente
+    IF @IdPersonaBeneficiario IS NULL
+    BEGIN
+        INSERT INTO Persona (
+            IdTipoDoc, Nombre, ValorDocumentoIdentidad, 
+            FechaNacimiento, Email, telefono1, telefono2
+        )
+        VALUES (
+            @in_TipoDoc, @in_NombrePersona, @in_ValorDoc, 
+            @in_FechaNac, @in_Email, @in_Tel1, @in_Tel2
+        );
+        SET @IdPersonaBeneficiario = SCOPE_IDENTITY();
+    END
+
+    -- verificar si la persona ya es beneficiaria activa de la cuenta
+    IF EXISTS (
+        SELECT 1 
+        FROM Beneficiario 
+        WHERE IdCuenta = @in_IdCuenta 
+          AND IdPersonaBeneficiario = @IdPersonaBeneficiario 
+          AND Activo = 1
+    )
+    BEGIN
+        SET @out_Codigo = 4;
+        SET @out_Mensaje = 'Esta persona ya es beneficiaria activa de la cuenta.';
+        SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
+        RETURN;
+    END
+
+    -- transaccion de inserción
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Valida que la cuenta pertenezca al usuario que tiene la sesion activa
-        IF NOT EXISTS (SELECT 1 FROM Usuarios_Ver WHERE Username = @in_Username AND NumeroCuenta = @in_NumeroCuenta)
-        BEGIN
-            SET @out_Codigo = 3;
-            SET @out_Mensaje = 'Error al agregar beneficiario: la cuenta indicada no pertenece al usuario.';
-            ROLLBACK TRANSACTION;
-            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
-            RETURN;
-        END
+            -- insertar el nuevo beneficiario vinculado a la cuenta y persona
+            INSERT INTO Beneficiario (
+                IdCuenta, IdPersonaBeneficiario, 
+                IdParentesco, Porcentaje, Activo
+            )
+            VALUES (
+                @in_IdCuenta, @IdPersonaBeneficiario, 
+                @in_IdParentesco, @in_Porcentaje, 1
+            );
 
-        -- Validar que no haya 3 beneficiarios
-        IF (SELECT COUNT(*) FROM Beneficiario WHERE NumeroCuenta = @in_NumeroCuenta AND Activo = 1) >= 3 --Cuenta si son 3 o mas
-        BEGIN
-            SET @out_Codigo = 1;
-            SET @out_Mensaje = 'Error al agregar beneficiario: la cuenta ya alcanzó el límite de beneficiarios.';
-            ROLLBACK TRANSACTION;
-            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
-            RETURN;
-        END
+            -- generar el json con los datos del nuevo beneficiario
+            DECLARE @jsonNuevo VARCHAR(MAX); -- almacena la estructura en formato json
+            SET @jsonNuevo = (
+                SELECT Nombre, ValorDocumentoIdentidad AS Documento, @in_Porcentaje AS Porcentaje
+                FROM Persona 
+                WHERE Id = @IdPersonaBeneficiario
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+            );
 
-        -- Valida que la persona no sea ya beneficiaria activa de esa cuenta (para cambiarla se usa Editar)
-        IF EXISTS (SELECT 1 FROM Beneficiario
-                   WHERE NumeroCuenta = @in_NumeroCuenta
-                     AND ValorDocumentoIdentidadBeneficiario = @in_ValorDoc
-                     AND Activo = 1)
-        BEGIN
-            SET @out_Codigo = 4;
-            SET @out_Mensaje = 'Error al agregar beneficiario: esa persona ya es beneficiaria de la cuenta, puede modificarla desde Editar.';
-            ROLLBACK TRANSACTION;
-            SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
-            RETURN;
-        END
-
-        -- Verifica si el beneficiario existe en Persona, si no lo inserta
-        IF NOT EXISTS (SELECT 1 FROM Persona WHERE ValorDocumentoIdentidad = @in_ValorDoc)
-        BEGIN
-            INSERT INTO Persona (TipoDocuIdentidad, Nombre, ValorDocumentoIdentidad, FechaNacimiento, Email, telefono1, telefono2)
-            VALUES (@in_TipoDoc, @in_NombrePersona, @in_ValorDoc, @in_FechaNac, @in_Email, @in_Tel1, @in_Tel2);
-        END
-
-        -- Inserta en beneficiario
-        INSERT INTO Beneficiario (NumeroCuenta, ValorDocumentoIdentidadBeneficiario, ParentezcoId, Porcentaje, Activo)
-        VALUES (@in_NumeroCuenta, @in_ValorDoc, @in_IdParentezco, @in_Porcentaje, 1);
-
-        -- Se genera el json para la bitacora
-        DECLARE @jsonNuevo VARCHAR(MAX);
-        SET @jsonNuevo = (
-            SELECT Nombre, ValorDocumentoIdentidad AS Documento, @in_Porcentaje AS Porcentaje
-            FROM Persona WHERE ValorDocumentoIdentidad = @in_ValorDoc
-            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-        );
-
-        -- Se registra en la bitacora el cambio, tipo operacion 3 corresponde a agregar beneficiario
-        EXEC dbo.sp_RegistrarBitacora @in_Username = @in_Username, @in_IdTipoOperacion = 3, @in_JsonAntes = NULL, @in_JsonDespues = @jsonNuevo, @in_IP = @in_IP;
+            -- registrar la acción en la bitácora (tipo de operación 3)
+            INSERT INTO Bitacora (IdUsuario, IdTipoOperacion, JsonDespues, IP, FechaHora)
+            VALUES (@IdUsuario, 3, @jsonNuevo, @in_IP, GETDATE());
 
         COMMIT TRANSACTION;
-        SET @out_Codigo = 0; --Si todo sale bien codigo 0 de exito
-        SET @out_Mensaje = 'Beneficiario agregado exitosamente.';
     END TRY
     BEGIN CATCH
+        -- si ocurre un error deshace la transacción y retorna el error
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         SET @out_Codigo = 2;
         SET @out_Mensaje = ERROR_MESSAGE();
     END CATCH
 
+    -- retornar el código y mensaje final
     SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
 END;
+GO

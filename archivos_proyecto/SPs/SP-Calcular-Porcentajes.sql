@@ -1,17 +1,23 @@
 CREATE OR ALTER PROCEDURE dbo.sp_CalcularPorcentajes
-    @in_BeneficiarioId INT
+    @in_BeneficiarioId INT             -- id del beneficiario para ubicar su cuenta
 AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON; -- evitar mensajes sobre filas afectadas
     
-    DECLARE @NumeroCuenta INT;
-    SELECT @NumeroCuenta = NumeroCuenta FROM Beneficiario WHERE Id = @in_BeneficiarioId;
+    -- obtener el id de la cuenta asociada al beneficiario
+    DECLARE @IdCuenta INT;             -- id numérico de la cuenta
+    SELECT @IdCuenta = IdCuenta 
+    FROM Beneficiario 
+    WHERE Id = @in_BeneficiarioId;
     
-    DECLARE @SumaPorcentajes INT;
+    -- calcular la suma total de los porcentajes activos de esa cuenta 
+    DECLARE @SumaPorcentajes INT;      -- acumula el porcentaje total
     SELECT @SumaPorcentajes = ISNULL(SUM(Porcentaje), 0)
     FROM Beneficiario
-    WHERE NumeroCuenta = @NumeroCuenta AND Activo = 1;
+    WHERE IdCuenta = @IdCuenta 
+      AND Activo = 1;
     
-    -- Retorna la suma total de esa cuenta y la cuenta donde no se cumple
-    SELECT @NumeroCuenta AS NumeroCuenta, @SumaPorcentajes AS SumaTotal;
+    -- retornar la cuenta y la suma total obtenida
+    SELECT @IdCuenta AS IdCuenta, @SumaPorcentajes AS SumaTotal;
 END;
+GO
