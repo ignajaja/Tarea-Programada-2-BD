@@ -2,7 +2,7 @@ from django.db import connection, transaction
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from .forms import BeneficiarioForm, PersonaForm, AgregarBeneficiarioForm
-from .models import Beneficiario
+from .models import Beneficiario, Persona
 
 #Función que permite obtener la ip del usuario actual, decuelve la direccion ip
 #del usuarioa partir del request en formato de string o 0.0.0.0 por default si no se
@@ -146,7 +146,7 @@ def editar_beneficiarios(request, pk):
     beneficiario = Beneficiario(
         id=row['beneficiarioid'],
         persona=persona,
-        id_parentesco_id=row['parentescoid'],
+        parentesco_id=row['parentescoid'],  # O cámbialo por id_parentesco= si así se llama en tu models.py
         porcentaje=row['porcentaje']
     )
 

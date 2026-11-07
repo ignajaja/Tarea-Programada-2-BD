@@ -46,6 +46,10 @@ class Persona(models.Model):
     def __str__(self):
         return self.nombre
 
+    def validate_unique(self, exclude=None):
+        
+        pass
+
 class Beneficiario(models.Model):
     id = models.AutoField(primary_key=True, db_column='Id')
     numero_cuenta = models.IntegerField(db_column='NumeroCuenta')

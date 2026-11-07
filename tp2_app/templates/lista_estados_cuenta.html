@@ -13,13 +13,13 @@
             <!-- Formulario selector de cuenta para estados de cuenta -->
             <form method="get" class="row g-3 align-items-center mb-4 bg-light p-3 rounded border">
                 <div class="col-auto">
-                    <label for="cuentaSelect" class="col-form-label fw-bold">Seleccione la Cuenta:</label>
+                    <label for="cuentaSelect" class="col-form-label fw-bold">Seleccione la Cuenta a Consultar:</label>
                 </div>
                 <div class="col-auto">
                     <select name="cuenta" id="cuentaSelect" class="form-select" onchange="this.form.submit()">
                         {% for c in cuentas %}
                             <option value="{{ c.idcuenta }}" {% if c.idcuenta == cuenta_seleccionada %}selected{% endif %}>
-                                N.° Cuenta: {{ c.numerocuenta }}
+                                {{ c.numerocuenta }}
                             </option>
                         {% empty %}
                             <option value="">No hay cuentas disponibles</option>
@@ -59,7 +59,8 @@
                     </thead>
                     <tbody>
                         {% for e in estados_cuenta %}
-                        <tr class="text-center position-relative">
+                        <!-- Fila clickeable -->
+                        <tr class="text-center position-relative" style="cursor: pointer;" onclick="window.location.href='#';">
                             <td class="fw-semibold text-start">
                                 {{ e.numerocuenta }}
                             </td>
