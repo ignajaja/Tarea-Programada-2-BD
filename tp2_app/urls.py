@@ -10,4 +10,5 @@ urlpatterns = [
     path('beneficiarios/<int:pk>/eliminar/', views.eliminar_beneficiario, name = 'eliminar_beneficiario'),
     path('beneficiarios/<int:pk>/editar/', views.editar_beneficiarios, name = 'editar_beneficiarios'),
     path('estados-de-cuenta/', views.lista_estados_cuenta, name='lista_estados_cuenta'),
+    path('estados-de-cuenta/<int:pk>/', views.detalle_estado_cuenta, name='detalle_estado_cuenta'),
 ]

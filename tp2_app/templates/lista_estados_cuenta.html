@@ -60,7 +60,7 @@
                     <tbody>
                         {% for e in estados_cuenta %}
                         <!-- Fila clickeable -->
-                        <tr class="text-center position-relative" style="cursor: pointer;" onclick="window.location.href='#';">
+                        <tr class="text-center position-relative" style="cursor: pointer;" onclick="window.location.href='{% url 'detalle_estado_cuenta' e.idestadocuenta %}?cuenta={{ cuenta_seleccionada }}';">
                             <td class="fw-semibold text-start">
                                 {{ e.numerocuenta }}
                             </td>

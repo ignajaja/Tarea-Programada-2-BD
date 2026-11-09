@@ -340,3 +340,41 @@ def eliminar_beneficiario(request, pk):
         messages.error(request, mensaje_respuesta)
 
     return redirect('lista_beneficiarios')
+
+#funcion para ver el detalle de un estado de cuenta y sus movimientos
+def detalle_estado_cuenta(request, pk):
+    if 'username' not in request.session:
+        return redirect('login')
+
+    usuario_actual = request.session['username']
+    ip_cliente = obtener_ip(request)
+
+    id_cuenta = request.GET.get('cuenta')
+    if not id_cuenta or not id_cuenta.isdigit():
+        messages.error(request, "No se indicó la cuenta del estado de cuenta.")
+        return redirect('lista_estados_cuenta')
+
+    # datos generales: el SP los lista por cuenta, se toma el estado seleccionado
+    estados = obtener_filas(
+        "EXEC dbo.sp_ConsultarEstadosDeCuenta @in_Username = %s, @in_IdCuenta = %s, @in_IP = %s",
+        [usuario_actual, id_cuenta, ip_cliente]
+    )
+    estado = next((e for e in estados if e['idestadocuenta'] == pk), None)
+
+    if estado is None:
+        messages.error(request, "El estado de cuenta no existe o no tiene permiso para verlo.")
+        return redirect('lista_estados_cuenta')
+
+    movimientos = obtener_filas(
+        "EXEC dbo.sp_ConsultarMovimientosEstadoCuenta @in_Username = %s, @in_IdEstadoCuenta = %s, @in_IP = %s",
+        [usuario_actual, pk, ip_cliente]
+    )
+
+    total_sinpe = (estado['cantsinpeentrantes'] or 0) + (estado['cantsinpesalientes'] or 0)
+
+    return render(request, 'detalle_estado_de_cuenta.html', {
+        'estado': estado,
+        'movimientos': movimientos,
+        'total_sinpe': total_sinpe,
+        'cuenta_seleccionada': int(id_cuenta)
+    })
