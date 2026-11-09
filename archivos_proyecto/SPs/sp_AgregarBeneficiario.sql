@@ -1,12 +1,6 @@
-USE [TareaProgramada2]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE OR ALTER PROCEDURE dbo.sp_AgregarBeneficiario
  @in_Username VARCHAR(50), -- usuario que realiza la accion
- @in_IdCuenta INT, -- id de la cuenta a la que se asocia el beneficiario
+ @in_NumeroCuenta VARCHAR(20), -- numero de cuenta a la que se asociara el beneficiario
  @in_TipoDoc INT, -- id del tipo de documento del beneficiario
  @in_NombrePersona VARCHAR(100), -- nombre completo del beneficiario
  @in_ValorDoc VARCHAR(20), -- numero de documento del beneficiario
@@ -44,10 +38,16 @@ BEGIN
 
  DECLARE @IdUsuario INT; -- id del usuario que realiza la accion
  DECLARE @EsAdmin BIT = 0; -- 1 si el usuario es administrador
+ DECLARE @IdCuenta INT; --almacena el ID de la cuenta
  DECLARE @CantidadActivos INT; -- beneficiarios activos que ya tiene la cuenta
  DECLARE @EsBeneficiarioActivo BIT; -- 1 si la persona ya es beneficiaria activa de la cuenta
  DECLARE @IdPersonaBeneficiario INT; -- id de la persona beneficiaria en la tabla persona
  DECLARE @jsonNuevo VARCHAR(MAX); -- datos del nuevo beneficiario en json para la bitacora
+
+ --Traducir el numero de cuenta el ID de la cuenta para obtener el valor de la variable IdCuenta
+ SELECT @IdCuenta = C.Id
+ FROM dbo.Cuenta AS C
+ WHERE C.NumeroCuenta = @in_NumeroCuenta
 
  -- mapea el username al id y a los privilegios del usuario
  SELECT @IdUsuario = U.Id, @EsAdmin = U.EsAdministrador
@@ -57,7 +57,7 @@ BEGIN
  -- cuenta los beneficiarios activos de la cuenta
  SELECT @CantidadActivos = COUNT(*)
  FROM dbo.Beneficiario AS B
- WHERE B.IdCuenta = @in_IdCuenta
+ WHERE B.IdCuenta = @IdCuenta
  AND B.Activo = 1;
 
  -- revisa si la persona ya es beneficiaria activa de esta cuenta
@@ -65,7 +65,7 @@ BEGIN
   SELECT 1
   FROM dbo.Beneficiario AS B
   INNER JOIN dbo.Persona AS P ON P.Id = B.IdPersonaBeneficiario
-  WHERE B.IdCuenta = @in_IdCuenta
+  WHERE B.IdCuenta = @IdCuenta
   AND B.Activo = 1
   AND P.ValorDocumentoIdentidad = @in_ValorDoc
  ) THEN 1 ELSE 0 END;
@@ -73,7 +73,7 @@ BEGIN
  -- determina el codigo con la primera validacion que falle
  SET @out_Codigo = CASE
   WHEN @IdUsuario IS NULL THEN 5
-  WHEN @EsAdmin = 0 AND NOT EXISTS (SELECT 1 FROM dbo.Usuarios_Ver AS UV WHERE UV.IdUsuario = @IdUsuario AND UV.IdCuenta = @in_IdCuenta) THEN 3
+  WHEN @EsAdmin = 0 AND NOT EXISTS (SELECT 1 FROM dbo.Usuarios_Ver AS UV WHERE UV.IdUsuario = @IdUsuario AND UV.IdCuenta = @IdCuenta) THEN 3
   WHEN @in_Porcentaje IS NULL OR @in_Porcentaje <= 0 OR @in_Porcentaje > 100 THEN 6
   WHEN @CantidadActivos >= 3 THEN 1
   WHEN @EsBeneficiarioActivo = 1 THEN 4
@@ -114,7 +114,7 @@ BEGIN
 
   -- inserta el beneficiario ligado a la cuenta y a la persona por id
   INSERT INTO dbo.Beneficiario (IdCuenta, IdPersonaBeneficiario, IdParentesco, Porcentaje, Activo)
-  VALUES (@in_IdCuenta, @IdPersonaBeneficiario, @in_IdParentesco, @in_Porcentaje, 1);
+  VALUES (@IdCuenta, @IdPersonaBeneficiario, @in_IdParentesco, @in_Porcentaje, 1);
 
   -- arma el json con los datos del beneficiario
   SET @jsonNuevo = (
@@ -143,4 +143,3 @@ BEGIN
  -- devuelve el resultado final
  SELECT @out_Codigo AS Codigo, @out_Mensaje AS Mensaje;
 END;
-GO

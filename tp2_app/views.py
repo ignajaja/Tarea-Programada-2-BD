@@ -124,7 +124,7 @@ def editar_beneficiarios(request, pk):
     ip_cliente = obtener_ip(request)
 
     # Llamado  al SP para obtener datos del beneficiario y persona asociada
-    datos = obtener_filas("EXEC dbo.sp_ObtenerDetalleBeneficiario @in_BeneficiarioId = %s", [pk])
+    datos = obtener_filas("EXEC dbo.sp_ObtenerDetalleBeneficiario @in_Username = %s, @in_BeneficiarioId = %s", [usuario_actual, pk])
     
     if not datos:
         messages.error(request, "El beneficiario no existe o está inactivo.")
@@ -271,10 +271,10 @@ def agregar_beneficiario(request):
                 cursor.execute(
                     "EXEC dbo.sp_AgregarBeneficiario @in_Username = %s, @in_NumeroCuenta = %s, @in_TipoDoc = %s, "
                     "@in_NombrePersona = %s, @in_ValorDoc = %s, @in_FechaNac = %s, @in_Email = %s, @in_Tel1 = %s, "
-                    "@in_Tel2 = %s, @in_IdParentezco = %s, @in_Porcentaje = %s, @in_IP = %s",
+                    "@in_Tel2 = %s, @in_IdParentesco = %s, @in_Porcentaje = %s, @out_Codigo = %s OUTPUT, @out_Mensaje = %s OUTPUT, @in_IP = %s",
                     [usuario_actual, int(datos['numero_cuenta']), int(datos['tipo_documento']), datos['nombre'],
                      datos['valor_documento'], datos['fecha_nacimiento'], datos['email'], datos['telefono1'],
-                     datos['telefono2'], int(datos['parentesco']), datos['porcentaje'], ip_cliente]
+                     datos['telefono2'], int(datos['parentesco']), datos['porcentaje'], None, None, ip_cliente]
                 )
                 row = None
                 while True:
