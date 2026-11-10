@@ -24,15 +24,18 @@
 
             {% if estado %}
             <p class="text-center text-muted mb-4">
-                <i class="bi bi-credit-card-2-front me-1"></i>Cuenta <span class="fw-semibold">{{ estado.numerocuenta }}</span>
             </p>
-
+            
             <!-- Resumen del estado de cuenta: 3 columnas (fechas, saldos y operaciones) -->
             <div class="row g-4 mb-4 px-lg-4">
-
+                
                 <!-- Fechas y saldo mínimo -->
                 <div class="col-12 col-md-4">
-                    <div class="bg-light border rounded p-3 h-100">
+                    <div class="rounded p-3 h-100"> 
+                        <div class="mb-3">
+                            <div class="text-primary fw-bold small text-uppercase">Cuenta</div>
+                            <div class="fs-5 text-secondary fw-semibold">{{ estado.numerocuenta }}</div>
+                        </div>
                         <div class="mb-3">
                             <div class="text-primary fw-bold small text-uppercase">Fecha de inicio</div>
                             <div class="fs-5">{{ estado.fechainicio|date:"d/m/Y" }}</div>
@@ -46,7 +49,7 @@
 
                 <!-- Saldos -->
                 <div class="col-12 col-md-4">
-                    <div class="bg-light border rounded p-3 h-100">
+                    <div class="rounded p-3 h-100">
                         <div class="mb-3">
                             <div class="text-primary fw-bold small text-uppercase">Saldo al inicio</div>
                             <div class="fs-5">{{ estado.simbolomoneda }}{{ estado.saldoinicial|floatformat:2 }}</div>
@@ -57,14 +60,14 @@
                         </div>
                         <div>
                             <div class="text-primary fw-bold small text-uppercase">Saldo al final</div>
-                            <div class="fs-5 fw-bold text-success">{{ estado.simbolomoneda }}{{ estado.saldofinal|floatformat:2 }}</div>
+                            <div class="fs-5">{{ estado.simbolomoneda }}{{ estado.saldofinal|floatformat:2 }}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Cantidad de operaciones -->
                 <div class="col-12 col-md-4">
-                    <div class="bg-light border rounded p-3 h-100">
+                    <div class="rounded p-3 h-100">
                         <div class="mb-3">
                             <div class="text-primary fw-bold small text-uppercase">Operaciones en cajero automático (ATM)</div>
                             <div class="fs-5">{{ estado.cantoperacionesatm }}</div>

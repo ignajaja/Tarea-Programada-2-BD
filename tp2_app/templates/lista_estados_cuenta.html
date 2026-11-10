@@ -66,10 +66,10 @@
                             </td>
                             <td>{{ e.fechainicio|date:"d/m/Y" }}</td>
                             <td>{{ e.fechafin|date:"d/m/Y" }}</td>
-                            <td class="text-end">${{ e.saldoinicial }}</td>
-                            <td class="text-end">${{ e.saldominimo }}</td>
-                            <td class="fw-bold text-success text-end">${{ e.saldofinal }}</td>
-                            <td class="text-end">${{ e.interesesacumulados }}</td>
+                            <td class="text-end">{{ e.simbolomoneda }}{{ e.saldoinicial }}</td>
+                            <td class="text-end">{{ e.simbolomoneda }}{{ e.saldominimo }}</td>
+                            <td class="fw-bold text-success text-end">{{ e.simbolomoneda }}{{ e.saldofinal }}</td>
+                            <td class="text-end">{{ e.simbolomoneda }}{{ e.interesesacumulados }}</td>
                             <td>{{ e.cantretiros }}</td>
                             <td>{{ e.cantdepositos }}</td>
                             <td>{{ e.cantsinpeentrantes }}</td>
