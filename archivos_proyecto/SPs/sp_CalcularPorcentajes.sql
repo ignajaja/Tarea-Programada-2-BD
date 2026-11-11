@@ -1,6 +1,13 @@
+USE [TareaProgramada2]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE OR ALTER PROCEDURE dbo.sp_CalcularPorcentajes
- @in_IdCuenta INT = NULL, -- id de la cuenta cuyos porcentajes se suman
- @in_BeneficiarioId INT = NULL -- alternativa, id de un beneficiario para ubicar su cuenta
+ @in_IdCuenta INT = NULL 			-- id de la cuenta cuyos porcentajes se suman
+ , @in_BeneficiarioId INT = NULL 	-- id de un beneficiario para ubicar su cuenta
+ , @out_ResultCode INT = 0 OUTPUT 	-- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion por cuenta
@@ -12,20 +19,27 @@ devuelve IdCuenta y SumaTotal, la aplicacion muestra la alerta cuando SumaTotal 
 BEGIN
  SET NOCOUNT ON;
 
- DECLARE @IdCuenta INT; -- cuenta que se va a sumar
+ BEGIN TRY
+  SET @out_ResultCode = 0;
 
- -- usa la cuenta recibida, si no se recibio la busca a partir del beneficiario
- SELECT @IdCuenta = ISNULL(
-  @in_IdCuenta,
-  (SELECT B.IdCuenta FROM dbo.Beneficiario AS B WHERE B.Id = @in_BeneficiarioId)
- );
+  DECLARE @IdCuenta INT; -- cuenta que se va a sumar
 
- -- suma solo los porcentajes de los beneficiarios activos de esa cuenta
- SELECT
-  @IdCuenta AS IdCuenta,
-  ISNULL(SUM(B.Porcentaje), 0) AS SumaTotal
- FROM dbo.Beneficiario AS B
- WHERE B.IdCuenta = @IdCuenta
- AND B.Activo = 1;
+  -- usa la cuenta recibida, si no se recibio la busca a partir del beneficiario
+  SELECT @IdCuenta = ISNULL(
+   @in_IdCuenta
+   , (SELECT B.IdCuenta FROM dbo.Beneficiario AS B WHERE B.Id = @in_BeneficiarioId)
+  );
+
+  -- suma solo los porcentajes de los beneficiarios activos de esa cuenta
+  SELECT
+   @IdCuenta AS IdCuenta
+   , ISNULL(SUM(B.Porcentaje), 0) AS SumaTotal
+  FROM dbo.Beneficiario AS B
+  WHERE B.IdCuenta = @IdCuenta
+  AND B.Activo = 1;
+ END TRY
+ BEGIN CATCH
+  SET @out_ResultCode = 50000;
+ END CATCH;
 END;
-
+GO
