@@ -1,16 +1,17 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_CargarCatalogos] Fecha de script: 11/19/2026 10:54:49 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_CargarCatalogos
- @outResultCode INT OUTPUT -- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_CargarCatalogos]
+ @out_ResultCode INT OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion
  DECLARE @resultado INT
- EXEC dbo.sp_CargarCatalogos @outResultCode = @resultado OUTPUT
+ EXEC dbo.sp_CargarCatalogos @out_ResultCode = @resultado OUTPUT
  SELECT @resultado AS ResultCode
 */
 BEGIN
@@ -18,7 +19,7 @@ BEGIN
 
  BEGIN TRY
   -- inicia en exito
-  SET @outResultCode = 0;
+  SET @out_ResultCode = 0;
 
   -- contenido del xml de catalogos
   DECLARE @datos XML;
@@ -39,9 +40,8 @@ BEGIN
    T.Nodo.value('@Id', 'INT')
    , T.Nodo.value('@Nombre', 'VARCHAR(64)')
   FROM @datos.nodes('/Catalogos/Tipo_Doc/TipoDocuIdentidad') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Tipo_Doc AS D WHERE D.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.Tipo_Doc AS D ON D.Id = T.Nodo.value('@Id', 'INT')
+  WHERE D.Id IS NULL;
 
   -- tipos de moneda
   INSERT INTO dbo.Tipo_Moneda (
@@ -54,9 +54,8 @@ BEGIN
    , T.Nodo.value('@Nombre', 'VARCHAR(64)')
    , T.Nodo.value('@Simbolo', 'NVARCHAR(64)')
   FROM @datos.nodes('/Catalogos/Tipo_Moneda/TipoMoneda') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Tipo_Moneda AS M WHERE M.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.Tipo_Moneda AS M ON M.Id = T.Nodo.value('@Id', 'INT')
+  WHERE M.Id IS NULL;
 
   -- parentescos
   INSERT INTO dbo.Parentesco (
@@ -67,9 +66,8 @@ BEGIN
    T.Nodo.value('@Id', 'INT')
    , T.Nodo.value('@Nombre', 'VARCHAR(64)')
   FROM @datos.nodes('/Catalogos/Parentezcos/Parentezco') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Parentesco AS P WHERE P.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.Parentesco AS P ON P.Id = T.Nodo.value('@Id', 'INT')
+  WHERE P.Id IS NULL;
 
   -- tipos de cuenta de ahorro, necesita que los tipos de moneda ya esten cargados
   INSERT INTO dbo.Tipo_Cuenta_Ahorros (
@@ -92,9 +90,8 @@ BEGIN
    , T.Nodo.value('@ComisionSinpe', 'DECIMAL(18,2)')
    , T.Nodo.value('@TasaInteresAnual', 'DECIMAL(5,2)')
   FROM @datos.nodes('/Catalogos/Tipo_Cuenta_Ahorros/TipoCuentaAhorro') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Tipo_Cuenta_Ahorros AS TC WHERE TC.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.Tipo_Cuenta_Ahorros AS TC ON TC.Id = T.Nodo.value('@Id', 'INT')
+  WHERE TC.Id IS NULL;
 
   -- tipos de movimiento, incluye la accion y si genera comprobante
   INSERT INTO dbo.Tipos_Movimiento (
@@ -109,9 +106,8 @@ BEGIN
    , T.Nodo.value('@Accion', 'VARCHAR(16)')
    , T.Nodo.value('@flagGeneraComprobante', 'BIT')
   FROM @datos.nodes('/Catalogos/Tipos_Movimiento/TipoMovimiento') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Tipos_Movimiento AS TM WHERE TM.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.Tipos_Movimiento AS TM ON TM.Id = T.Nodo.value('@Id', 'INT')
+  WHERE TM.Id IS NULL;
 
   -- tipos de operacion de la bitacora
   INSERT INTO dbo.TipoOperacion (
@@ -122,9 +118,8 @@ BEGIN
    T.Nodo.value('@Id', 'INT')
    , T.Nodo.value('@Nombre', 'VARCHAR(64)')
   FROM @datos.nodes('/Catalogos/TipoOperacionesBitacora/TipoOperacion') AS T(Nodo)
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.TipoOperacion AS TO1 WHERE TO1.Id = T.Nodo.value('@Id', 'INT')
-  );
+  LEFT JOIN dbo.TipoOperacion AS TO1 ON TO1.Id = T.Nodo.value('@Id', 'INT')
+  WHERE TO1.Id IS NULL;
 
   COMMIT TRANSACTION tCargarCatalogos;
  END TRY
@@ -134,7 +129,6 @@ BEGIN
   BEGIN
    ROLLBACK TRANSACTION;
   END;
-  SET @outResultCode = 50000;
+  SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

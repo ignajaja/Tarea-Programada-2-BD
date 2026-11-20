@@ -1,16 +1,21 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_CargarNoCatalogos] Fecha de script: 11/19/2026 10:55:29 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_CargarNoCatalogos
- @outResultCode INT OUTPUT -- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_CargarNoCatalogos]
+ @out_ResultCode INT OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
+carga datos basicos que no son catalogos (personas, usuarios, cuentas, beneficiarios y permisos) desde un xml aparte
+en la tarea 3 estos datos tambien llegan dentro de OperacionesTarea3.xml, este sp solo se usa si se entrega un xml de datos iniciales
+no carga estados de cuenta, el trigger trg_CrearPrimerEstadoCuenta los crea al insertar cada cuenta
+
 ejemplo de ejecucion
  DECLARE @resultado INT
- EXEC dbo.sp_CargarNoCatalogos @outResultCode = @resultado OUTPUT
+ EXEC dbo.sp_CargarNoCatalogos @out_ResultCode = @resultado OUTPUT
  SELECT @resultado AS ResultCode
 */
 BEGIN
@@ -18,7 +23,7 @@ BEGIN
 
  BEGIN TRY
   -- inicia en exito
-  SET @outResultCode = 0;
+  SET @out_ResultCode = 0;
 
   -- contenido del xml de datos no catalogos
   DECLARE @datos XML;
@@ -91,7 +96,7 @@ BEGIN
   SELECT
    T.Nodo.value('@User', 'VARCHAR(64)')
    , T.Nodo.value('@Pass', 'VARCHAR(128)')
-   , T.Nodo.value('@flagEsAdministrador', 'BIT')
+   , T.Nodo.value('@EsAdministrador', 'BIT')
    , T.Nodo.value('@ValorDocId', 'VARCHAR(32)')
   FROM @datos.nodes('//Usuarios/Usuario') AS T(Nodo);
 
@@ -156,9 +161,8 @@ BEGIN
    , X.telefono1
    , X.telefono2
   FROM @Persona AS X
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Persona AS P WHERE P.ValorDocumentoIdentidad = X.ValorDocumentoIdentidad
-  );
+  LEFT JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumentoIdentidad
+  WHERE P.Id IS NULL;
 
   -- inserta usuarios mapeando el documento al id de la persona
   INSERT INTO dbo.Usuario (
@@ -173,9 +177,8 @@ BEGIN
    , P.Id
   FROM @Usuario AS X
   INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumento
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Usuario AS U WHERE U.Username = X.Username
-  );
+  LEFT JOIN dbo.Usuario AS U ON U.Username = X.Username
+  WHERE U.Id IS NULL;
 
   -- inserta cuentas mapeando el documento del cliente al id de la persona
   INSERT INTO dbo.Cuenta (
@@ -192,9 +195,8 @@ BEGIN
    , P.Id
   FROM @Cuenta AS X
   INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumento
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Cuenta AS C WHERE C.NumeroCuenta = X.NumeroCuenta
-  );
+  LEFT JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
+  WHERE C.Id IS NULL;
 
   -- inserta beneficiarios mapeando numero de cuenta y documento a sus ids
   INSERT INTO dbo.Beneficiario (
@@ -214,9 +216,8 @@ BEGIN
   FROM @Beneficiario AS X
   INNER JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
   INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumento
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Beneficiario AS B WHERE B.IdCuenta = C.Id AND B.IdPersonaBeneficiario = P.Id
-  );
+  LEFT JOIN dbo.Beneficiario AS B ON B.IdCuenta = C.Id AND B.IdPersonaBeneficiario = P.Id
+  WHERE B.Id IS NULL;
 
   -- inserta permisos mapeando usuario y cuenta a sus ids
   INSERT INTO dbo.Usuarios_Ver (
@@ -228,9 +229,8 @@ BEGIN
   FROM @UsuarioPuedeVer AS X
   INNER JOIN dbo.Usuario AS U ON U.Username = X.Username
   INNER JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
-  WHERE NOT EXISTS (
-   SELECT 1 FROM dbo.Usuarios_Ver AS UV WHERE UV.IdUsuario = U.Id AND UV.IdCuenta = C.Id
-  );
+  LEFT JOIN dbo.Usuarios_Ver AS UV ON UV.IdUsuario = U.Id AND UV.IdCuenta = C.Id
+  WHERE UV.Id IS NULL;
 
   COMMIT TRANSACTION tCargarNoCatalogos;
  END TRY
@@ -240,7 +240,6 @@ BEGIN
   BEGIN
    ROLLBACK TRANSACTION;
   END;
-  SET @outResultCode = 50000;
+  SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

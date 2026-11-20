@@ -1,12 +1,13 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_ObtenerCuentasUsuario] Fecha de script: 11/19/2026 11:01:51 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_ObtenerCuentasUsuario
- @in_Username VARCHAR(64) 			-- usuario cuyas cuentas se consultan
- , @out_ResultCode INT = 0 OUTPUT 	-- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_ObtenerCuentasUsuario]
+ @in_Username VARCHAR(64) -- usuario cuyas cuentas se consultan
+ , @out_ResultCode INT = 0 OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion
@@ -19,7 +20,7 @@ BEGIN
  BEGIN TRY
   SET @out_ResultCode = 0;
 
-  DECLARE @IdUsuario INT; 		-- id del usuario que consulta
+  DECLARE @IdUsuario INT; -- id del usuario que consulta
   DECLARE @flagEsAdmin BIT = 0; -- 1 si el usuario es administrador
 
   -- mapea el username al id y a los privilegios del usuario
@@ -37,15 +38,12 @@ BEGIN
   FROM dbo.Cuenta AS C
   INNER JOIN dbo.Tipo_Cuenta_Ahorros AS TCA ON TCA.Id = C.IdTipoCuenta
   INNER JOIN dbo.Tipo_Moneda AS TM ON TM.Id = TCA.IdTipoMoneda
+  LEFT JOIN dbo.Usuarios_Ver AS UV ON UV.IdCuenta = C.Id
+   AND UV.IdUsuario = @IdUsuario
   WHERE @IdUsuario IS NOT NULL
   AND (
    @flagEsAdmin = 1
-   OR EXISTS (
-    SELECT 1
-    FROM dbo.Usuarios_Ver AS UV
-    WHERE UV.IdUsuario = @IdUsuario
-    AND UV.IdCuenta = C.Id
-   )
+   OR UV.Id IS NOT NULL
   )
   ORDER BY C.NumeroCuenta;
  END TRY
@@ -53,4 +51,3 @@ BEGIN
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

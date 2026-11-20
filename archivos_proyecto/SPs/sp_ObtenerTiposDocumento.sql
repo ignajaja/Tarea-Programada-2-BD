@@ -1,10 +1,11 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_ObtenerTiposDocumento] Fecha de script: 11/19/2026 11:02:18 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_ObtenerTiposDocumento
+ALTER   PROCEDURE [dbo].[sp_ObtenerTiposDocumento]
  @out_ResultCode INT = 0 OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
@@ -27,4 +28,3 @@ BEGIN
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

@@ -1,10 +1,11 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_LimpiarBaseDatos] Fecha de script: 11/19/2026 11:01:18 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_LimpiarBaseDatos
+ALTER   PROCEDURE [dbo].[sp_LimpiarBaseDatos]
  @out_ResultCode INT OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
@@ -26,10 +27,10 @@ BEGIN
 
   DELETE FROM dbo.Bitacora_Simulacion;
   DELETE FROM dbo.Simulacion_Control;
-  DELETE FROM dbo.Comprobante_Movimiento;
   DELETE FROM dbo.Bitacora;
   DELETE FROM dbo.Usuarios_Ver;
   DELETE FROM dbo.Movimiento;
+  DELETE FROM dbo.Comprobante;
   DELETE FROM dbo.Estado_Cuenta;
   DELETE FROM dbo.Beneficiario;
   DELETE FROM dbo.Usuario;
@@ -54,4 +55,3 @@ BEGIN
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

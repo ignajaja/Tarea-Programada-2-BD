@@ -1,10 +1,11 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_EjecutarSimulacion] Fecha de script: 11/19/2026 10:59:34 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_EjecutarSimulacion
+ALTER   PROCEDURE [dbo].[sp_EjecutarSimulacion]
  @out_ResultCode INT OUTPUT -- 0 exito, 50000 error (el detalle queda en Bitacora_Simulacion)
 AS
 /*
@@ -14,6 +15,9 @@ ejemplo de ejecucion
  SELECT @resultado AS ResultCode
  SELECT SC.FechaOperacion, SC.Estado, SC.UltimoMovimientoProcesado FROM dbo.Simulacion_Control AS SC ORDER BY SC.FechaOperacion
  SELECT BS.Id, BS.FechaOperacion, BS.NumeroCuenta, BS.TipoMovimiento, BS.Monto, BS.CodigoError, BS.Mensaje FROM dbo.Bitacora_Simulacion AS BS ORDER BY BS.Id
+
+si el proceso falla se puede volver a ejecutar, continua desde la ultima fecha y el ultimo movimiento procesados
+las fechas ya procesadas no se vuelven a ejecutar
 */
 BEGIN
  SET NOCOUNT ON;
@@ -74,7 +78,7 @@ BEGIN
    , NumeroCuenta VARCHAR(32)
   );
   DECLARE @Movimientos TABLE (
-   Id INT IDENTITY(1,1) PRIMARY KEY -- posicion del movimiento en el xml, para reiniciar
+   Id INT IDENTITY(1,1) PRIMARY KEY -- posicion del movimiento en el xml, es la llave que se guarda para reiniciar
    , Fecha DATE
    , CodigoCuenta VARCHAR(32)
    , TipoMov VARCHAR(64)
@@ -88,24 +92,43 @@ BEGIN
   );
 
   -- control del ciclo de fechas
-  DECLARE @Fila INT = 1; 		-- fila actual de @Fechas
-  DECLARE @FechaGenerada DATE; 	-- fecha que se agrega al generar el calendario
-  DECLARE @TotalFechas INT; 	-- cantidad de fechas pendientes
-  DECLARE @FechaActual DATE; 	-- fecha que se esta procesando
-  DECLARE @Pendientes INT; 		-- fechas anteriores a la actual que no estan procesadas, debe ser 0
+  DECLARE @Fila INT = 1; -- fila actual de @Fechas
+  DECLARE @FechaGenerada DATE; -- fecha que se agrega al generar el calendario
+  DECLARE @TotalFechas INT; -- cantidad de fechas pendientes
+  DECLARE @FechaActual DATE; -- fecha que se esta procesando
+  DECLARE @Pendientes INT; -- fechas anteriores a la actual que no estan procesadas, debe ser 0
 
   -- control del ciclo de movimientos
-  DECLARE @UltimoMov INT; 			-- id del ultimo movimiento ya procesado de la fecha, desde ahi se reinicia
-  DECLARE @IdMovActual INT; 		-- id en @Movimientos del movimiento que se esta aplicando
-  DECLARE @CuentaMov VARCHAR(32); 	-- cuenta del movimiento actual
-  DECLARE @TipoMov VARCHAR(64); 	-- tipo del movimiento actual
-  DECLARE @MontoMov DECIMAL(18,2); 	-- monto del movimiento actual
-  DECLARE @DescMov VARCHAR(256); 	-- descripcion del movimiento actual
-  DECLARE @ResMov INT; 				-- codigo que devuelve sp_AplicarMovimiento
+  DECLARE @UltimoMov INT; -- id del ultimo movimiento ya procesado de la fecha, desde ahi se reinicia
+  DECLARE @IdMovActual INT; -- id en @Movimientos del movimiento que se esta aplicando
+  DECLARE @CuentaMov VARCHAR(32); -- cuenta del movimiento actual
+  DECLARE @TipoMov VARCHAR(64); -- tipo del movimiento actual
+  DECLARE @MontoMov DECIMAL(18,2); -- monto del movimiento actual
+  DECLARE @DescMov VARCHAR(256); -- descripcion del movimiento actual
+  DECLARE @ResMov INT; -- codigo que devuelve sp_AplicarMovimiento
 
   -- control del ciclo de cierres
-  DECLARE @IdCuentaCierre INT; 	-- cuenta a la que se le cierra el estado
-  DECLARE @ResCierre INT; 		-- codigo que devuelve sp_CerrarYCrearEstadoCuenta
+  DECLARE @IdCuentaCierre INT; -- cuenta a la que se le cierra el estado
+  DECLARE @ResCierre INT; -- codigo que devuelve sp_CerrarYCrearEstadoCuenta
+
+  -- banderas de existencia, se calculan antes de insertar para no duplicar datos
+  DECLARE @flagFechaProcesada BIT; -- 1 si la fecha ya esta procesada en el control
+  DECLARE @flagFechaEnControl BIT; -- 1 si la fecha ya tiene fila en el control
+
+  -- mensajes de los movimientos rechazados por una regla de negocio
+  DECLARE @Mensajes TABLE (
+   Codigo INT -- codigo que devuelve sp_AplicarMovimiento
+   , Mensaje VARCHAR(256) -- texto que se guarda en la bitacora de la simulacion
+  );
+
+  -- carga los mensajes de error de los movimientos
+  INSERT INTO @Mensajes (Codigo, Mensaje)
+  VALUES
+   (50001, 'Monto invalido')
+   , (50002, 'La cuenta no existe')
+   , (50003, 'El tipo de movimiento no existe')
+   , (50004, 'La cuenta no tiene estado de cuenta abierto en esa fecha')
+   , (50005, 'Saldo insuficiente');
 
   -- lee el archivo xml de operaciones
   SELECT @DatosXML = CONVERT(XML, X.BulkColumn)
@@ -122,14 +145,17 @@ BEGIN
 
   WHILE @FechaGenerada <= @FechaMax
   BEGIN
+   -- marca si la fecha ya fue procesada en una corrida anterior
+   SET @flagFechaProcesada = 0;
+
+   SELECT @flagFechaProcesada = 1
+   FROM dbo.Simulacion_Control AS SC
+   WHERE SC.FechaOperacion = @FechaGenerada
+   AND SC.Estado = 'Procesada';
+
    INSERT INTO @Fechas (FechaOp)
    SELECT @FechaGenerada
-   WHERE NOT EXISTS (
-    SELECT 1
-    FROM dbo.Simulacion_Control AS SC
-    WHERE SC.FechaOperacion = @FechaGenerada
-    AND SC.Estado = 'Procesada'
-   );
+   WHERE @flagFechaProcesada = 0;
 
    SET @FechaGenerada = DATEADD(day, 1, @FechaGenerada);
   END;
@@ -202,7 +228,7 @@ BEGIN
    T.Nodo.value('../@Fecha', 'DATE')
    , T.Nodo.value('@User', 'VARCHAR(64)')
    , T.Nodo.value('@Pass', 'VARCHAR(128)')
-   , T.Nodo.value('@flagEsAdministrador', 'BIT')
+   , T.Nodo.value('@EsAdministrador', 'BIT')
    , T.Nodo.value('@ValorDocId', 'VARCHAR(32)')
   FROM @DatosXML.nodes('/Operaciones/FechaOperacion/Usuario') AS T(Nodo);
 
@@ -218,7 +244,7 @@ BEGIN
    , T.Nodo.value('@NumeroCuenta', 'VARCHAR(32)')
   FROM @DatosXML.nodes('/Operaciones/FechaOperacion/UsuarioPuedeVer') AS T(Nodo);
 
-  -- carga los movimientos del xml
+  -- carga los movimientos del xml, el id identity conserva el orden en que vienen en el xml
   INSERT INTO @Movimientos (
    Fecha
    , CodigoCuenta
@@ -241,7 +267,7 @@ BEGIN
   -- recorre las fechas de forma consecutiva
   WHILE @Fila <= @TotalFechas
   BEGIN
-   -- toma la fecha actual
+   -- toma la fecha de esta iteracion
    SELECT @FechaActual = F.FechaOp
    FROM @Fechas AS F
    WHERE F.RowID = @Fila;
@@ -254,28 +280,34 @@ BEGIN
 
    IF @Pendientes > 0
    BEGIN
-    RAISERROR('Se intento procesar una fecha sin haber procesado la fecha anterior', 16, 1);
+    INSERT INTO dbo.Bitacora_Simulacion (FechaOperacion, CodigoError, Mensaje)
+    VALUES (@FechaActual, 50000, 'Se intento procesar una fecha sin haber procesado la fecha anterior');
+
+    SET @out_ResultCode = 50000;
+    RETURN;
    END;
 
-   -- registra la fecha en el control, si ya existe se conserva su ultimo movimiento
+   -- registra la fecha en el control, si ya existe (reinicio) se conserva su ultimo movimiento
+   SET @flagFechaEnControl = 0;
+
+   SELECT @flagFechaEnControl = 1
+   FROM dbo.Simulacion_Control AS SC
+   WHERE SC.FechaOperacion = @FechaActual;
+
    INSERT INTO dbo.Simulacion_Control (
     FechaOperacion
     , Estado
    )
    SELECT @FechaActual
     , 'En proceso'
-   WHERE NOT EXISTS (
-    SELECT 1
-    FROM dbo.Simulacion_Control AS SC
-    WHERE SC.FechaOperacion = @FechaActual
-   );
+   WHERE @flagFechaEnControl = 0;
 
    -- lee desde que movimiento se debe continuar
    SELECT @UltimoMov = SC.UltimoMovimientoProcesado
    FROM dbo.Simulacion_Control AS SC
    WHERE SC.FechaOperacion = @FechaActual;
 
-   -- primero se insertan las personas, cuentas, beneficiarios y usuarios del dia en una transaccion
+   -- paso 1 personas, cuentas, beneficiarios y usuarios del dia en una transaccion
    BEGIN TRANSACTION tEntidadesDia;
 
    -- inserta las personas nuevas del dia
@@ -296,12 +328,9 @@ BEGIN
     , X.Telefono1
     , X.Telefono2
    FROM @Personas AS X
+   LEFT JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumentoIdentidad
    WHERE X.Fecha = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Persona AS P
-    WHERE P.ValorDocumentoIdentidad = X.ValorDocumentoIdentidad
-   );
+   AND P.Id IS NULL;
 
    -- inserta las cuentas del dia mapeando el documento del cliente al id de la persona
    -- el trigger crea el primer estado de cuenta de cada una
@@ -319,12 +348,9 @@ BEGIN
     , P.Id
    FROM @Cuentas AS X
    INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumentoCliente
+   LEFT JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
    WHERE X.Fecha = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Cuenta AS C
-    WHERE C.NumeroCuenta = X.NumeroCuenta
-   );
+   AND C.Id IS NULL;
 
    -- inserta los beneficiarios del dia mapeando numero de cuenta y documento a sus ids
    INSERT INTO dbo.Beneficiario (
@@ -342,13 +368,10 @@ BEGIN
    FROM @Beneficiarios AS X
    INNER JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
    INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumentoBeneficiario
-   WHERE X.Fecha = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Beneficiario AS B
-    WHERE B.IdCuenta = C.Id
+   LEFT JOIN dbo.Beneficiario AS B ON B.IdCuenta = C.Id
     AND B.IdPersonaBeneficiario = P.Id
-   );
+   WHERE X.Fecha = @FechaActual
+   AND B.Id IS NULL;
 
    -- inserta los usuarios del dia mapeando el documento al id de la persona
    INSERT INTO dbo.Usuario (
@@ -363,12 +386,9 @@ BEGIN
     , P.Id
    FROM @Usuarios AS X
    INNER JOIN dbo.Persona AS P ON P.ValorDocumentoIdentidad = X.ValorDocumento
+   LEFT JOIN dbo.Usuario AS U ON U.Username = X.Username
    WHERE X.Fecha = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Usuario AS U
-    WHERE U.Username = X.Username
-   );
+   AND U.Id IS NULL;
 
    -- inserta los permisos de visualizacion mapeando usuario y cuenta a sus ids
    INSERT INTO dbo.Usuarios_Ver (
@@ -380,18 +400,14 @@ BEGIN
    FROM @UsuariosVer AS X
    INNER JOIN dbo.Usuario AS U ON U.Username = X.Username
    INNER JOIN dbo.Cuenta AS C ON C.NumeroCuenta = X.NumeroCuenta
-   WHERE X.Fecha = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Usuarios_Ver AS UV
-    WHERE UV.IdUsuario = U.Id
+   LEFT JOIN dbo.Usuarios_Ver AS UV ON UV.IdUsuario = U.Id
     AND UV.IdCuenta = C.Id
-   );
+   WHERE X.Fecha = @FechaActual
+   AND UV.Id IS NULL;
 
    COMMIT TRANSACTION tEntidadesDia;
 
-   -- luego se ejecutan movimientos del dia, como cada uno se aplica en su propia 
-   -- transaccion dentro del sp_AplicarMovimiento, aca no se abre transaccion
+   -- paso 2 movimientos del dia, cada uno se aplica en su propia transaccion dentro de sp_AplicarMovimiento
    -- toma el primer movimiento de la fecha posterior al ultimo procesado
    SELECT @IdMovActual = MIN(M.Id)
    FROM @Movimientos AS M
@@ -409,7 +425,7 @@ BEGIN
     FROM @Movimientos AS M
     WHERE M.Id = @IdMovActual;
 
-    -- aplica el movimiento llamando al sp_AplicarMovimiento
+    -- aplica el movimiento
     EXEC dbo.sp_AplicarMovimiento
      @in_NumeroCuenta = @CuentaMov
      , @in_NombreTipoMovimiento = @TipoMov
@@ -419,7 +435,7 @@ BEGIN
      , @in_IdMovimientoXml = @IdMovActual
      , @out_ResultCode = @ResMov OUTPUT;
 
-    -- si el movimiento fue rechazado por alguno de los errores posibles queda registrado y la simulacion continua
+    -- si el movimiento fue rechazado por una regla de negocio queda registrado y la simulacion continua
     INSERT INTO dbo.Bitacora_Simulacion (
      FechaOperacion
      , NumeroCuenta
@@ -434,14 +450,9 @@ BEGIN
      , @TipoMov
      , @MontoMov
      , @ResMov
-     , CASE @ResMov
-      WHEN 50001 THEN 'Monto invalido'
-      WHEN 50002 THEN 'La cuenta no existe'
-      WHEN 50003 THEN 'El tipo de movimiento no existe'
-      WHEN 50004 THEN 'La cuenta no tiene estado de cuenta abierto en esa fecha'
-      WHEN 50005 THEN 'Saldo insuficiente'
-     END
-    WHERE @ResMov NOT IN (0, 50000);
+     , MS.Mensaje
+    FROM @Mensajes AS MS
+    WHERE MS.Codigo = @ResMov;
 
     -- los movimientos rechazados tambien se marcan como procesados, los aplicados ya se marcaron dentro del sp
     UPDATE dbo.Simulacion_Control
@@ -449,10 +460,14 @@ BEGIN
     WHERE FechaOperacion = @FechaActual
     AND @ResMov <> 50000;
 
-    -- si hay error en la bd se detiene la simulacion
+    -- un error de base de datos detiene la simulacion
     IF @ResMov = 50000
     BEGIN
-     RAISERROR('Error de base de datos al aplicar un movimiento', 16, 1);
+     INSERT INTO dbo.Bitacora_Simulacion (FechaOperacion, NumeroCuenta, TipoMovimiento, Monto, CodigoError, Mensaje)
+     VALUES (@FechaActual, @CuentaMov, @TipoMov, @MontoMov, 50000, 'Error de base de datos al aplicar un movimiento');
+
+     SET @out_ResultCode = 50000;
+     RETURN;
     END;
 
     -- siguiente movimiento de la fecha
@@ -462,19 +477,16 @@ BEGIN
     AND M.Id > @IdMovActual;
    END;
 
-   -- cierre de estados de cuenta, se buscan las cuentas cuyo estado termina hoy y no se han cerrado
+   -- paso 3 cierre de estados de cuenta, se buscan las cuentas cuyo estado termina hoy y no se han cerrado
    DELETE FROM @CuentasCierre;
 
    INSERT INTO @CuentasCierre (IdCuenta)
    SELECT EC.IdCuenta
    FROM dbo.Estado_Cuenta AS EC
+   LEFT JOIN dbo.Estado_Cuenta AS Siguiente ON Siguiente.IdCuenta = EC.IdCuenta
+    AND Siguiente.fechaInicio = DATEADD(day, 1, EC.fechafin)
    WHERE EC.fechafin = @FechaActual
-   AND NOT EXISTS (
-    SELECT 1
-    FROM dbo.Estado_Cuenta AS Siguiente
-    WHERE Siguiente.IdCuenta = EC.IdCuenta
-    AND Siguiente.fechaInicio > EC.fechafin
-   );
+   AND Siguiente.Id IS NULL;
 
    -- recorre las cuentas de menor a mayor id, cada cierre es una transaccion propia
    SELECT @IdCuentaCierre = MIN(CC.IdCuenta) FROM @CuentasCierre AS CC;
@@ -488,7 +500,11 @@ BEGIN
 
     IF @ResCierre > 0
     BEGIN
-     RAISERROR('Error al cerrar y abrir el estado de cuenta', 16, 1);
+     INSERT INTO dbo.Bitacora_Simulacion (FechaOperacion, CodigoError, Mensaje)
+     VALUES (@FechaActual, 50000, 'Error al cerrar y abrir el estado de cuenta');
+
+     SET @out_ResultCode = 50000;
+     RETURN;
     END;
 
     SELECT @IdCuentaCierre = MIN(CC.IdCuenta)
@@ -496,7 +512,7 @@ BEGIN
     WHERE CC.IdCuenta > @IdCuentaCierre;
    END;
 
-   -- marcar la fecha como procesada
+   -- paso 4 marca la fecha como procesada
    UPDATE dbo.Simulacion_Control
    SET Estado = 'Procesada'
     , FechaHoraFin = GETDATE()
@@ -512,7 +528,9 @@ BEGIN
    ROLLBACK TRANSACTION;
   END;
 
-  -- deja el error registrado
+  -- deja el error registrado, la variable recorta el mensaje al tamaño de la columna
+  DECLARE @MensajeError VARCHAR(256) = ERROR_MESSAGE(); -- texto del error de base de datos
+
   INSERT INTO dbo.Bitacora_Simulacion (
    FechaOperacion
    , NumeroCuenta
@@ -527,10 +545,9 @@ BEGIN
    , NULL
    , NULL
    , 50000
-   , LEFT(ERROR_MESSAGE(), 256)
+   , @MensajeError
   );
 
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

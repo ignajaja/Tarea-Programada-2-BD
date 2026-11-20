@@ -1,13 +1,14 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_CerrarSesion] Fecha de script: 11/19/2026 10:56:11 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_CerrarSesion
- @in_Username VARCHAR(64) 			-- usuario que cierra sesion
- , @in_IP VARCHAR(64) = '0.0.0.0' 	-- ip del cliente, por defecto 0.0.0.0 si views.py no la envia
- , @out_ResultCode INT = 0 OUTPUT 	-- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_CerrarSesion]
+ @in_Username VARCHAR(64) -- usuario que cierra sesion
+ , @in_IP VARCHAR(64) = '0.0.0.0' -- ip del cliente, por defecto 0.0.0.0 si views.py no la envia
+ , @out_ResultCode INT = 0 OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion
@@ -47,4 +48,3 @@ BEGIN
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

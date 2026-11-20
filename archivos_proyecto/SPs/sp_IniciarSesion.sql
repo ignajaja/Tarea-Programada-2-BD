@@ -1,14 +1,15 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_IniciarSesion] Fecha de script: 11/19/2026 11:01:03 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_IniciarSesion
- @in_Username VARCHAR(64)			-- usuario que intenta iniciar sesion
- , @in_Pass VARCHAR(128)			-- contraseña digitada
- , @in_IP VARCHAR(64) = '0.0.0.0'	-- ip del cliente, por defecto 0.0.0.0 si views.py no la envia
- , @out_ResultCode INT = 0 OUTPUT	-- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_IniciarSesion]
+ @in_Username VARCHAR(64) -- usuario que intenta iniciar sesion
+ , @in_Pass VARCHAR(128) -- contraseña digitada
+ , @in_IP VARCHAR(64) = '0.0.0.0' -- ip del cliente, por defecto 0.0.0.0 si views.py no la envia
+ , @out_ResultCode INT = 0 OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion
@@ -21,8 +22,9 @@ BEGIN
  BEGIN TRY
   SET @out_ResultCode = 0;
 
-  DECLARE @IdUsuario INT;		-- id del usuario si las credenciales son correctas
+  DECLARE @IdUsuario INT; -- id del usuario si las credenciales son correctas
   DECLARE @flagEsAdmin BIT = 0; -- 1 si el usuario es administrador
+  DECLARE @Codigo INT = 1; -- 0 login exitoso, 1 credenciales invalidas
 
   -- busca el usuario comparando usuario y contraseña distinguiendo mayusculas y minusculas
   SELECT @IdUsuario = U.Id
@@ -30,6 +32,12 @@ BEGIN
   FROM dbo.Usuario AS U
   WHERE U.Username COLLATE Latin1_General_CS_AS = @in_Username
   AND U.Pass COLLATE Latin1_General_CS_AS = @in_Pass;
+
+  -- si encontro el usuario el login es exitoso
+  IF (@IdUsuario IS NOT NULL)
+  BEGIN
+   SET @Codigo = 0;
+  END;
 
   -- registra en bitacora el login solo si las credenciales fueron validas, tipo de operacion 1
   INSERT INTO dbo.Bitacora (
@@ -51,10 +59,9 @@ BEGIN
   -- devuelve si es administrador y el codigo de resultado
   SELECT
    @flagEsAdmin AS EsAdmin
-   , CASE WHEN @IdUsuario IS NOT NULL THEN 0 ELSE 1 END AS Codigo;
+   , @Codigo AS Codigo;
  END TRY
  BEGIN CATCH
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO

@@ -1,13 +1,14 @@
 USE [TareaProgramada2]
 GO
+/****** Objeto: StoredProcedure [dbo].[sp_CalcularPorcentajes] Fecha de script: 11/19/2026 10:54:32 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE dbo.sp_CalcularPorcentajes
- @in_IdCuenta INT = NULL 			-- id de la cuenta cuyos porcentajes se suman
- , @in_BeneficiarioId INT = NULL 	-- id de un beneficiario para ubicar su cuenta
- , @out_ResultCode INT = 0 OUTPUT 	-- 0 exito, 50000 error de bd
+ALTER   PROCEDURE [dbo].[sp_CalcularPorcentajes]
+ @in_IdCuenta INT = NULL -- id de la cuenta cuyos porcentajes se suman
+ , @in_BeneficiarioId INT = NULL -- alternativa, id de un beneficiario para ubicar su cuenta
+ , @out_ResultCode INT = 0 OUTPUT -- 0 exito, 50000 error de bd
 AS
 /*
 ejemplo de ejecucion por cuenta
@@ -22,24 +23,33 @@ BEGIN
  BEGIN TRY
   SET @out_ResultCode = 0;
 
-  DECLARE @IdCuenta INT; -- cuenta que se va a sumar
+  DECLARE @IdCuenta INT = @in_IdCuenta; -- cuenta que se va a sumar
+  DECLARE @SumaTotal INT; -- suma de los porcentajes de los beneficiarios activos
 
-  -- usa la cuenta recibida, si no se recibio la busca a partir del beneficiario
-  SELECT @IdCuenta = ISNULL(
-   @in_IdCuenta
-   , (SELECT B.IdCuenta FROM dbo.Beneficiario AS B WHERE B.Id = @in_BeneficiarioId)
-  );
+  -- si no se recibio la cuenta se busca a partir del beneficiario
+  IF (@IdCuenta IS NULL)
+  BEGIN
+   SELECT @IdCuenta = B.IdCuenta
+   FROM dbo.Beneficiario AS B
+   WHERE B.Id = @in_BeneficiarioId;
+  END;
 
   -- suma solo los porcentajes de los beneficiarios activos de esa cuenta
-  SELECT
-   @IdCuenta AS IdCuenta
-   , ISNULL(SUM(B.Porcentaje), 0) AS SumaTotal
+  SELECT @SumaTotal = SUM(B.Porcentaje)
   FROM dbo.Beneficiario AS B
   WHERE B.IdCuenta = @IdCuenta
   AND B.Activo = 1;
+
+  -- si la cuenta no tiene beneficiarios activos la suma queda en null
+  IF (@SumaTotal IS NULL)
+  BEGIN
+   SET @SumaTotal = 0;
+  END;
+
+  SELECT @IdCuenta AS IdCuenta
+   , @SumaTotal AS SumaTotal;
  END TRY
  BEGIN CATCH
   SET @out_ResultCode = 50000;
  END CATCH;
 END;
-GO
